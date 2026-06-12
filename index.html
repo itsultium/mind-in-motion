@@ -11,45 +11,49 @@
   
   /* Cinematic Intro Video Overlay */
   #intro-video {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    object-fit: cover;
-    z-index: 999;
-    background: #05090f;
-    transition: opacity 1.2s ease-in-out;
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    object-fit: cover; z-index: 999; background: #05090f;
+    transition: opacity 1.2s ease-in-out; pointer-events: none; opacity: 0;
   }
 
-  /* Browser Autoplay Gatekeeper */
+  /* Artistic Main Menu System Overlay */
   #gatekeeper {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: #05090f;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: opacity 0.6s ease-in-out;
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: #05090f; z-index: 1000; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; transition: opacity 0.6s ease-in-out;
+    user-select: none; -webkit-user-select: none;
   }
   #gatekeeper h1 {
-    color: #dfe8f5;
-    font: 28px Georgia, serif;
-    letter-spacing: 6px;
-    margin-bottom: 12px;
-    opacity: 0.85;
+    color: #dfe8f5; font: 32px Georgia, serif; letter-spacing: 8px;
+    margin-bottom: 40px; opacity: 0.9; text-shadow: 0 0 20px rgba(157,184,224,0.15);
   }
-  #gatekeeper p {
-    color: #9db8e0;
-    font: 12px Georgia, serif;
-    letter-spacing: 3px;
-    opacity: 0.5;
+  .menu-layout { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  
+  .menu-btn {
+    background: transparent; border: 1px solid rgba(157,184,224,0.25); color: #dfe8f5;
+    font: 11px Georgia, serif; letter-spacing: 3px; padding: 14px 34px; min-width: 200px;
+    cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); text-align: center;
+  }
+  .menu-btn:hover {
+    background: rgba(157,184,224,0.12); border-color: rgba(157,184,224,0.6);
+    box-shadow: 0 0 15px rgba(157,184,224,0.1);
+  }
+  
+  #level-select-panel {
+    margin-top: 40px; display: flex; flex-direction: column; align-items: center; opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  #level-select-panel p {
+    color: #9db8e0; font: 9px Georgia, serif; letter-spacing: 4px; margin-bottom: 14px; opacity: 0.5;
+  }
+  .nodes-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 450px; }
+  
+  .node-btn {
+    background: transparent; border: 1px solid rgba(157,184,224,0.15); color: #9db8e0;
+    font: 11px Georgia, serif; padding: 8px 16px; cursor: pointer; transition: all 0.2s;
+  }
+  .node-btn:hover {
+    background: rgba(157,184,224,0.2); color: #dfe8f5; border-color: rgba(157,184,224,0.5);
   }
 
   #hud {
@@ -74,10 +78,17 @@
 
 <div id="gatekeeper">
   <h1>MIND IN MOTION</h1>
-  <p>CLICK TO ENTER</p>
+  <div class="menu-layout">
+    <button class="menu-btn" id="menu-new-btn">NEW JOURNEY</button>
+    <button class="menu-btn" id="menu-cont-btn" style="display: none;">CONTINUE</button>
+  </div>
+  <div id="level-select-panel">
+    <p>SELECT UNLOCKED CHAPTER</p>
+    <div class="nodes-row" id="nodes-container"></div>
+  </div>
 </div>
 
-<video id="intro-video" src="https://res.cloudinary.com/dcjst7sod/video/upload/v1781299675/Story_0_xbmfds.mp4" playsinline></video>
+<video id="intro-video" src="https://res.cloudinary.com/dcjst7sod/video/upload/v1781299675/Story_0_xbmfds.mp4" playsinline preload="auto"></video>
 
 <canvas id="c"></canvas>
 <div id="hud">ARROWS / WASD &nbsp;·&nbsp; SPACE TO JUMP &nbsp;·&nbsp; R RESTART · M MUTE</div>
