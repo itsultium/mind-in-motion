@@ -1,5 +1,5 @@
 // ============================================================
-// MIND IN MOTION — game.js (Cinematic Expansion Matrix Edition)
+// MIND IN MOTION — game.js (Performance & Stealth Optimized)
 // States: MENU -> INTRO -> STORY -> PLAY -> FADE -> next STORY
 // ============================================================
 
@@ -38,7 +38,7 @@ bg.debris.src = 'bg_debris.jpg';   bg.debris.onload = () => bg.debrisOk = true;
 bg.occl.src = 'bg_occl_thin.jpg';   bg.occl.onload = () => bg.occlOk = true;
 bg.shard.src = 'bg_occl_shard.jpg'; bg.shard.onload = () => bg.shardOk = true;
 
-// ---------- calibrated mechanics matrix ----------
+// ---------- mechanics matrix ----------
 const PHYS = {
   gravity: 2150, moveAccel: 3000, airAccel: 2700, friction: 2200,
   maxSpeed: 470, jumpVel: -930, jumpCut: 0.45,
@@ -47,7 +47,7 @@ const PHYS = {
 
 // ---------- global state architecture ----------
 const game = {
-  state: 'MENU',          // MENU | INTRO | STORY | PLAY | FADE | END
+  state: 'MENU',          
   levelIndex: 0,
   level: null,
   checkpoint: null,
@@ -56,9 +56,9 @@ const game = {
   storyTimer: 0,
   deaths: 0,
   audioDamp: 1.0,
-  bloom: 0.0,             // Current environmental saturation level (0 = greyscale)
-  targetBloom: 0.0,       // Color saturation target coordinator
-  phaseTimer: 0.0         // Time tracking variable for phasing solid platforms
+  bloom: 0.0,             
+  targetBloom: 0.0,       
+  phaseTimer: 0.0         
 };
 
 const player = {
@@ -189,7 +189,6 @@ function setupSaveMenu() {
   if (highestUnlocked > 0) {
     levelSelectPanel.style.opacity = "1";
     nodesContainer.innerHTML = "";
-    // Dynamically append selection node items for unlocked locations
     for (let i = 0; i <= Math.min(highestUnlocked, 6); i++) {
       if (i >= LEVELS.length) break;
       const btn = document.createElement('button');
@@ -272,11 +271,10 @@ function loadLevel(i) {
   game.storyLine = 0;
   game.storyTimer = 0;
   game.fade = 0;
-  game.bloom = 0.0;       // Reset saturation properties on story transition cards
+  game.bloom = 0.0;       
   game.targetBloom = 0.0;
   game.phaseTimer = 0.0;
 
-  // Commit save metrics cleanly to localStorage registers
   localStorage.setItem('mim_saved_stage', i);
   const reachedMax = Math.max(parseInt(localStorage.getItem('mim_unlocked_stage') || "0"), i);
   localStorage.setItem('mim_unlocked_stage', reachedMax);
@@ -327,7 +325,7 @@ function setKey(code, down) {
 }
 
 window.addEventListener('keydown', e => { setKey(e.code, true); e.preventDefault(); });
-window.addEventListener('keyup',   e => setKey(e.code, false));
+window.addEventListener('keyup',   e => setKey(code, false));
 
 function bindBtn(id, code) {
   const el = document.getElementById(id);
@@ -372,14 +370,12 @@ function update(dt) {
   }
   if (game.state === 'END') return;
 
-  // Increment timelines for platform transformations & watercolor bleeding transitions
   game.phaseTimer += dt;
   if (player.x > 550) game.targetBloom = 1.0;
   game.bloom += (game.targetBloom - game.bloom) * 1.8 * dt;
 
   const L = game.level;
 
-  // --- SPRING SEALS PROCESSING WINDOW ---
   for (const [sx, sy, sw, sh, spower] of (L.springs || [])) {
     if (overlap(player.x, player.y, player.w, player.h, sx, sy, sw, sh)) {
       player.vy = -spower; player.grounded = false; player.jumpsLeft = 2; 
@@ -387,7 +383,6 @@ function update(dt) {
     }
   }
 
-  // --- ACTIVE ENEMY SCANNERS LOOP ---
   for (let e of enemies) {
     if (e.type === 'stalker') {
       const xDist = player.x - e.x;
@@ -447,7 +442,6 @@ function update(dt) {
   player.x += player.vx * dt;
   for (let i = 0; i < L.platforms.length; i++) {
     const [px, py, pw, ph] = L.platforms[i];
-    // Dynamic Phasing solidity state verification
     const isPhasing = (game.levelIndex === 2 || game.levelIndex === 3 || game.levelIndex === 5) && (i % 2 === 1);
     if (isPhasing && (game.phaseTimer % 4 >= 2.5)) continue; 
 
@@ -525,7 +519,6 @@ function update(dt) {
   }
 
   for (let p of ambientParticles) {
-    // Incorporate rhythmic structural pulse adjustments to drift physics speeds
     const beatVelocityFactor = 1.0 + 0.5 * Math.abs(Math.sin(performance.now() / 380));
     p.x += p.speedX * beatVelocityFactor * dt; p.y += p.speedY * dt;
     if (p.x < -20) p.x = W + 20; if (p.y < -20) p.y = H + 20;
@@ -545,9 +538,6 @@ function render() {
   if (game.state === 'STORY') { renderStory(); return; }
   if (game.state === 'END') { renderEnd(); return; }
 
-  // --- INJECT PROGRAMMATIC COLOR BLOOM ENVELOPE ---
-  ctx.filter = "grayscale(" + ((1.0 - game.bloom) * 100) + "%)";
-
   const mood = game.level.mood || { veil: [105,125,148], grade: null, darken: 0 };
   const [vr, vg, vb] = mood.veil;
 
@@ -566,10 +556,14 @@ function render() {
   layer(bg.debris, bg.debrisOk, 1.25, 0.35, 1.5);
 
   ctx.save();
-  // Ambient particle expansion tied to procedural audio-reactive oscillator triggers
   const pulseScale = 1.0 + 0.4 * Math.abs(Math.sin(performance.now() / 380));
   for (let p of ambientParticles) {
-    ctx.fillStyle = `rgba(223, 232, 245, ${p.alpha})`;
+    // HIGH PERFORMANCE COLOR CONTROL MATRIX
+    if (game.bloom < 1.0) {
+      ctx.fillStyle = `rgba(140, 155, 180, ${p.alpha * 0.4})`;
+    } else {
+      ctx.fillStyle = `rgba(223, 232, 245, ${p.alpha})`;
+    }
     ctx.beginPath(); ctx.arc(p.x, p.y, p.size * pulseScale, 0, Math.PI * 2); ctx.fill();
   }
   ctx.restore();
@@ -586,8 +580,8 @@ function render() {
     if (isPhasing) {
       const cycle = game.phaseTimer % 4;
       if (cycle < 2.0) ctx.globalAlpha = 1.0;
-      else if (cycle < 2.5) ctx.globalAlpha = 0.35 + 0.15 * Math.sin(performance.now() / 40); // Flashing context warning
-      else ctx.globalAlpha = 0.08; // Translucent outline phase
+      else if (cycle < 2.5) ctx.globalAlpha = 0.35 + 0.15 * Math.sin(performance.now() / 40); 
+      else ctx.globalAlpha = 0.08; 
     }
     ctx.fillStyle = '#060b17'; ctx.fillRect(px, py, pw, ph);
     ctx.fillStyle = 'rgba(157,184,224,0.20)'; ctx.fillRect(px, py, pw, 3);
@@ -599,13 +593,16 @@ function render() {
     ctx.fillStyle = 'rgba(223, 232, 245, 0.6)'; ctx.fillRect(sx, sy, sw, 2);
   }
 
+  // --- STEALTH OPTIMIZED HAZARD DISPLAY ---
   for (const [hx, hy, hw, hh] of (L.hazards || [])) {
-    ctx.fillStyle = '#03060d'; ctx.fillRect(hx, hy - 4, hw, hh + 4);
-    const n = Math.floor(hw / 6);
-    for (let i = 0; i < n; i++) {
-      ctx.fillStyle = `rgba(210, 220, 235, ${0.2 + Math.random() * 0.55})`;
-      ctx.fillRect(hx + Math.random() * hw, hy - 4 + Math.random() * (hh + 8), 2, 2);
-    }
+    ctx.fillStyle = '#060b17'; // Blends directly with your baseline ground color
+    ctx.fillRect(hx, hy - 4, hw, hh + 4);
+    
+    // Subtle, slow-shifting smoky dust mist indicators instead of blinding white dots
+    ctx.fillStyle = 'rgba(24, 38, 68, 0.4)';
+    const slowScroll = (performance.now() * 0.03) % (hw - 40);
+    ctx.fillRect(hx + slowScroll, hy - 2, 35, 2);
+    ctx.fillRect(hx + hw - slowScroll - 35, hy + 2, 35, 2);
   }
 
   for (const cp of L.checkpoints) {
@@ -625,22 +622,32 @@ function render() {
 
   for (let e of enemies) {
     ctx.save(); ctx.translate(e.x + e.w / 2, e.y + e.h);
-    if (e.isAggro) {
-      ctx.shadowColor = 'rgba(235, 95, 95, 0.75)'; ctx.shadowBlur = 14 + 6 * Math.sin(performance.now() / 90);
-    } else {
-      ctx.shadowColor = 'rgba(223, 232, 245, 0.3)'; ctx.shadowBlur = 8;
-    }
     ctx.fillStyle = e.type === 'stalker' ? '#08040f' : '#030712';
-    ctx.beginPath(); ctx.moveTo(-e.w/2, 0); ctx.lineTo(-e.w/3, -e.h);
+    
+    // Smooth vector ring indicators to safely bypass shadowBlur performance hits
+    if (e.isAggro) {
+      ctx.fillStyle = 'rgba(235, 95, 95, 0.3)';
+      ctx.beginPath(); ctx.arc(0, -e.h/2, e.h * 0.7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#0a0202';
+    }
+    
+    ctx.beginPath();
+    ctx.moveTo(-e.w/2, 0); ctx.lineTo(-e.w/3, -e.h);
     ctx.lineTo(e.w/3, -e.h); ctx.lineTo(e.w/2, 0);
     ctx.closePath(); ctx.fill(); ctx.restore();
   }
 
+  // --- SYSTEM-FRIENDLY TINT GRAPHICS BLOOM VECTOR ---
+  if (game.bloom < 1.0) {
+    ctx.save();
+    ctx.globalCompositeOperation = "color";
+    ctx.fillStyle = `rgba(110, 125, 145, ${1.0 - game.bloom})`;
+    ctx.fillRect(player.x - W, player.y - H, W * 2, H * 2);
+    ctx.restore();
+  }
+
   drawPlayer();
   ctx.restore();
-
-  // Reset operational filter to protect screen-space typography layers
-  ctx.filter = "none";
 
   const gm = game.level.mood;
   if (gm && gm.grade) { ctx.fillStyle = gm.grade; ctx.fillRect(0, 0, W, H); }
@@ -655,7 +662,6 @@ function render() {
 }
 
 function renderEnd() {
-  ctx.filter = "none";
   ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'center'; ctx.fillStyle = '#dfe8f5'; ctx.font = '30px Georgia, serif';
   ctx.fillText('CLARITY ACHIEVED', W / 2, H * 0.4);
@@ -664,7 +670,6 @@ function renderEnd() {
 }
 
 function renderStory() {
-  ctx.filter = "none";
   ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H);
   const L = game.level;
   ctx.textAlign = 'center'; ctx.fillStyle = '#9db8e0'; ctx.font = '14px Georgia, serif';
@@ -699,7 +704,6 @@ function fogDrift() {
 function lightShafts() {
   const t = performance.now() / 1000;
   ctx.save();
-  // Modulate light beam size in alignment with procedural audio-reactive oscillator triggers
   const pulseWidthMod = 35 * Math.sin(t * 0.4);
   for (let i = 0; i < 2; i++) {
     const baseX = W * (0.25 + i * 0.45) - (cam.x * 0.05) % W;
@@ -716,7 +720,6 @@ function drawPlayer() {
   const cx = player.x + player.w / 2; const feetY = player.y + player.h;
   ctx.save(); ctx.translate(cx, feetY); ctx.scale(player.dir, 1);
   if (spriteReady) {
-    ctx.shadowColor = 'rgba(157, 184, 224, 0.45)'; ctx.shadowBlur = 12;
     ctx.drawImage(sprite, player.frame * SHEET.cw, 0, SHEET.cw, SHEET.ch, -drawW / 2, -drawH + (drawH * SHEET.feetPad / SHEET.ch), drawW, drawH);
   } else {
     ctx.fillStyle = '#05090f'; ctx.fillRect(-player.w / 2, -player.h, player.w, player.h);
@@ -730,7 +733,6 @@ function loop(now) {
   update(dt); render(); requestAnimationFrame(loop);
 }
 
-// Initial structural launcher hook
 window.onload = () => {
   setupSaveMenu();
   requestAnimationFrame(loop);
