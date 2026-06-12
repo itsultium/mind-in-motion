@@ -47,7 +47,7 @@ const PHYS = {
 
 // ---------- game state ----------
 const game = {
-  state: 'INTRO',          // INTRO | STORY | PLAY | FADE | END
+  state: 'INTRO',          
   levelIndex: 0,
   level: null,
   checkpoint: null,
@@ -124,8 +124,19 @@ function toggleMute() {
   audioChannels.music.volume = (game.state === 'PLAY' ? 0.25 : 0.02) * masterSwitch;
 }
 
-// ---------- cinematic video execution triggers ----------
+// ---------- interactive handshake handler ----------
+const gatekeeper = document.getElementById('gatekeeper');
 const videoElement = document.getElementById('intro-video');
+
+gatekeeper.addEventListener('click', () => {
+  gatekeeper.style.opacity = '0';
+  setTimeout(() => gatekeeper.remove(), 600);
+  
+  // Safe operational stream deployment
+  if (videoElement) {
+    videoElement.play().catch(e => console.log("Stream delivery blocked:", e));
+  }
+});
 
 videoElement.addEventListener('ended', () => {
   startAudio(); 
@@ -141,7 +152,7 @@ function skipVideo() {
     startAudio();
     videoElement.style.opacity = '0';
     setTimeout(() => {
-      videoElement.remove();
+      if (videoElement) videoElement.remove();
       loadLevel(0);
     }, 1200);
   }
