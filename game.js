@@ -1,6 +1,6 @@
 // ============================================================
-// MIND IN MOTION — game.js (Cinematic Mechanics Pro Edition v2)
-// States: INTRO -> STORY -> PLAY -> FADE -> next STORY
+// MIND IN MOTION — game.js (Cinematic Expansion Matrix Edition)
+// States: MENU -> INTRO -> STORY -> PLAY -> FADE -> next STORY
 // ============================================================
 
 const canvas = document.getElementById('c');
@@ -38,23 +38,16 @@ bg.debris.src = 'bg_debris.jpg';   bg.debris.onload = () => bg.debrisOk = true;
 bg.occl.src = 'bg_occl_thin.jpg';   bg.occl.onload = () => bg.occlOk = true;
 bg.shard.src = 'bg_occl_shard.jpg'; bg.shard.onload = () => bg.shardOk = true;
 
-// ---------- physics settings matrix ----------
+// ---------- calibrated mechanics matrix ----------
 const PHYS = {
-  gravity: 2150,       
-  moveAccel: 3000, 
-  airAccel: 2700,      
-  friction: 2200,
-  maxSpeed: 470,       
-  jumpVel: -930,       
-  jumpCut: 0.45,
-  coyoteTime: 0.12, 
-  jumpBuffer: 0.15, 
-  maxFall: 1100
+  gravity: 2150, moveAccel: 3000, airAccel: 2700, friction: 2200,
+  maxSpeed: 470, jumpVel: -930, jumpCut: 0.45,
+  coyoteTime: 0.12, jumpBuffer: 0.15, maxFall: 1100
 };
 
-// ---------- game state ----------
+// ---------- global state architecture ----------
 const game = {
-  state: 'INTRO',          
+  state: 'MENU',          // MENU | INTRO | STORY | PLAY | FADE | END
   levelIndex: 0,
   level: null,
   checkpoint: null,
@@ -62,7 +55,10 @@ const game = {
   storyLine: 0,
   storyTimer: 0,
   deaths: 0,
-  audioDamp: 1.0           
+  audioDamp: 1.0,
+  bloom: 0.0,             // Current environmental saturation level (0 = greyscale)
+  targetBloom: 0.0,       // Color saturation target coordinator
+  phaseTimer: 0.0         // Time tracking variable for phasing solid platforms
 };
 
 const player = {
@@ -133,7 +129,6 @@ function synthSFX(type) {
     osc.start(now); osc.stop(now + 0.09);
   }
   if (type === 'spring') {
-    // Elegant, soaring low-to-high frequency launch sweeping chord
     const osc1 = ctxNode.createOscillator();
     const osc2 = ctxNode.createOscillator();
     const gain = ctxNode.createGain();
@@ -172,22 +167,58 @@ function toggleMute() {
   audioChannels.music.volume = (game.state === 'PLAY' ? 0.25 : 0.02) * masterSwitch;
 }
 
-// ---------- interactive UI handlers ----------
+// ---------- interactive menu select & cache save system ----------
 const gatekeeper = document.getElementById('gatekeeper');
 const videoElement = document.getElementById('intro-video');
+const newJourneyBtn = document.getElementById('menu-new-btn');
+const continueBtn = document.getElementById('menu-cont-btn');
+const levelSelectPanel = document.getElementById('level-select-panel');
+const nodesContainer = document.getElementById('nodes-container');
 
-if (gatekeeper) {
-  gatekeeper.addEventListener('click', () => {
-    gatekeeper.style.opacity = '0';
-    setTimeout(() => gatekeeper.remove(), 600);
-    startAudio();
-    if (videoElement) {
-      videoElement.play().catch(e => {
-        videoElement.muted = true;
-        videoElement.play().catch(err => console.log(err));
-      });
+const RomanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII"];
+
+function setupSaveMenu() {
+  const highestUnlocked = parseInt(localStorage.getItem('mim_unlocked_stage') || "0");
+  const lastSavedLevel = parseInt(localStorage.getItem('mim_saved_stage') || "0");
+
+  if (lastSavedLevel > 0) {
+    continueBtn.style.display = "block";
+    continueBtn.addEventListener('click', () => bootIntoSystem(lastSavedLevel, false));
+  }
+  
+  if (highestUnlocked > 0) {
+    levelSelectPanel.style.opacity = "1";
+    nodesContainer.innerHTML = "";
+    // Dynamically append selection node items for unlocked locations
+    for (let i = 0; i <= Math.min(highestUnlocked, 6); i++) {
+      if (i >= LEVELS.length) break;
+      const btn = document.createElement('button');
+      btn.className = "node-btn";
+      btn.innerHTML = RomanNumerals[i];
+      btn.addEventListener('click', () => bootIntoSystem(i, false));
+      nodesContainer.appendChild(btn);
     }
-  });
+  }
+
+  newJourneyBtn.addEventListener('click', () => bootIntoSystem(0, true));
+}
+
+function bootIntoSystem(targetIndex, playIntroVideo) {
+  gatekeeper.style.opacity = '0';
+  setTimeout(() => gatekeeper.remove(), 600);
+  startAudio();
+
+  if (playIntroVideo && videoElement) {
+    game.state = 'INTRO';
+    videoElement.style.opacity = '1';
+    videoElement.play().catch(e => {
+      videoElement.muted = true;
+      videoElement.play().catch(err => console.log(err));
+    });
+  } else {
+    if (videoElement) videoElement.remove();
+    loadLevel(targetIndex);
+  }
 }
 
 if (videoElement) {
@@ -214,7 +245,6 @@ function initLevelEnemies() {
   enemies.length = 0;
   const L = game.level;
   if (!L || !L.enemies) return;
-  // Deep copies level enemy structures into dynamic execution instances
   for (const e of L.enemies) {
     enemies.push({ ...e });
   }
@@ -242,6 +272,15 @@ function loadLevel(i) {
   game.storyLine = 0;
   game.storyTimer = 0;
   game.fade = 0;
+  game.bloom = 0.0;       // Reset saturation properties on story transition cards
+  game.targetBloom = 0.0;
+  game.phaseTimer = 0.0;
+
+  // Commit save metrics cleanly to localStorage registers
+  localStorage.setItem('mim_saved_stage', i);
+  const reachedMax = Math.max(parseInt(localStorage.getItem('mim_unlocked_stage') || "0"), i);
+  localStorage.setItem('mim_unlocked_stage', reachedMax);
+
   initAmbientParticles();
   initLevelEnemies();
   respawn();
@@ -254,7 +293,7 @@ function respawn() {
   player.jumpsLeft = 2; 
   cam.x = player.x; cam.y = player.y;
   cam.zoom = 1.0; cam.targetZoom = 1.0;
-  initLevelEnemies(); // Resets ninja positioning maps on death
+  initLevelEnemies(); 
 }
 
 const keys = { left: false, right: false };
@@ -275,6 +314,7 @@ function anyKeyAdvance() {
 }
 
 function setKey(code, down) {
+  if (game.state === 'MENU') return;
   if (down && anyKeyAdvance()) return;
   if (code === 'KeyM' && down) { toggleMute(); return; }
   if (code === 'ArrowLeft' || code === 'KeyA') keys.left = down;
@@ -315,7 +355,7 @@ function overlap(ax, ay, aw, ah, bx, by, bw, bh) {
 
 function update(dt) {
   updateAudioMixing(dt);
-  if (game.state === 'INTRO') return;
+  if (game.state === 'MENU' || game.state === 'INTRO') return;
   if (game.state === 'STORY') {
     game.storyTimer += dt;
     const due = Math.floor(game.storyTimer / 1.4);
@@ -332,45 +372,40 @@ function update(dt) {
   }
   if (game.state === 'END') return;
 
+  // Increment timelines for platform transformations & watercolor bleeding transitions
+  game.phaseTimer += dt;
+  if (player.x > 550) game.targetBloom = 1.0;
+  game.bloom += (game.targetBloom - game.bloom) * 1.8 * dt;
+
   const L = game.level;
 
-  // --- DYNAMIC SEALS / SPRING PLATFORMS PROCESSING ---
+  // --- SPRING SEALS PROCESSING WINDOW ---
   for (const [sx, sy, sw, sh, spower] of (L.springs || [])) {
     if (overlap(player.x, player.y, player.w, player.h, sx, sy, sw, sh)) {
-      player.vy = -spower;
-      player.grounded = false;
-      player.jumpsLeft = 2; // Full horizontal and airborne replenish
-      synthSFX('spring');
-      dust(player.x + player.w / 2, player.y + player.h, 24, 280);
+      player.vy = -spower; player.grounded = false; player.jumpsLeft = 2; 
+      synthSFX('spring'); dust(player.x + player.w / 2, player.y + player.h, 24, 280);
     }
   }
 
-  // --- ENEMY AI LIEFECYCLE ENGINE (Patrols & Tracking Stalkers) ---
+  // --- ACTIVE ENEMY SCANNERS LOOP ---
   for (let e of enemies) {
     if (e.type === 'stalker') {
       const xDist = player.x - e.x;
       const yDist = Math.abs(player.y - e.y);
-      // Aggro boundary scanning window
       if (Math.abs(xDist) < 550 && yDist < 160) {
-        e.dir = Math.sign(xDist);
-        e.x += e.speed * 1.8 * e.dir * dt; // Rushes with high alert multiplier
-        e.isAggro = true;
+        e.dir = Math.sign(xDist); e.x += e.speed * 1.8 * e.dir * dt; e.isAggro = true;
       } else {
-        e.isAggro = false;
-        e.x += e.speed * e.dir * dt;
+        e.isAggro = false; e.x += e.speed * e.dir * dt;
         if (e.x < e.minX) { e.x = e.minX; e.dir = 1; }
         if (e.x > e.maxX) { e.x = e.maxX; e.dir = -1; }
       }
     } else {
-      // Basic aesthetic linear pacing shadow
       e.x += e.speed * e.dir * dt;
       if (e.x < e.minX) { e.x = e.minX; e.dir = 1; }
       if (e.x > e.maxX) { e.x = e.maxX; e.dir = -1; }
     }
-
     if (overlap(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h)) {
-      game.deaths++; game.audioDamp = 0.15;
-      dust(player.x + player.w / 2, player.y + player.h / 2, 20, 260);
+      game.deaths++; game.audioDamp = 0.15; dust(player.x + player.w / 2, player.y + player.h / 2, 20, 260);
       respawn(); return;
     }
   }
@@ -381,12 +416,10 @@ function update(dt) {
   if (keys.right) move += 1;
 
   if (move !== 0) {
-    player.vx += move * accel * dt;
-    player.dir = move;
+    player.vx += move * accel * dt; player.dir = move;
   } else if (player.grounded) {
     const f = PHYS.friction * dt;
-    if (Math.abs(player.vx) <= f) player.vx = 0;
-    else player.vx -= Math.sign(player.vx) * f;
+    if (Math.abs(player.vx) <= f) player.vx = 0; else player.vx -= Math.sign(player.vx) * f;
   }
   player.vx = Math.max(-PHYS.maxSpeed, Math.min(PHYS.maxSpeed, player.vx));
   player.vy = Math.min(player.vy + PHYS.gravity * dt, PHYS.maxFall);
@@ -396,16 +429,11 @@ function update(dt) {
 
   if (player.buffer > 0) {
     if (player.grounded || player.coyote > 0) {
-      player.vy = PHYS.jumpVel;
-      player.grounded = false; player.coyote = 0; player.buffer = 0;
-      player.jumpsLeft = 1; 
-      synthSFX('jump');
-      dust(player.x + player.w / 2, player.y + player.h, 8);
+      player.vy = PHYS.jumpVel; player.grounded = false; player.coyote = 0; player.buffer = 0; player.jumpsLeft = 1; 
+      synthSFX('jump'); dust(player.x + player.w / 2, player.y + player.h, 8);
     } else if (player.jumpsLeft > 0) {
-      player.vy = PHYS.jumpVel * 0.95; 
-      player.buffer = 0; player.jumpsLeft = 0; 
-      synthSFX('jump');
-      dust(player.x + player.w / 2, player.y + player.h / 2, 14, 220);
+      player.vy = PHYS.jumpVel * 0.95; player.buffer = 0; player.jumpsLeft = 0; 
+      synthSFX('jump'); dust(player.x + player.w / 2, player.y + player.h / 2, 14, 220);
     }
   }
   
@@ -417,19 +445,27 @@ function update(dt) {
   player.grounded = false;
 
   player.x += player.vx * dt;
-  for (const [px, py, pw, ph] of L.platforms) {
+  for (let i = 0; i < L.platforms.length; i++) {
+    const [px, py, pw, ph] = L.platforms[i];
+    // Dynamic Phasing solidity state verification
+    const isPhasing = (game.levelIndex === 2 || game.levelIndex === 3 || game.levelIndex === 5) && (i % 2 === 1);
+    if (isPhasing && (game.phaseTimer % 4 >= 2.5)) continue; 
+
     if (overlap(player.x, player.y, player.w, player.h, px, py, pw, ph)) {
-      if (player.vx > 0) player.x = px - player.w;
-      else if (player.vx < 0) player.x = px + pw;
+      if (player.vx > 0) player.x = px - player.w; else if (player.vx < 0) player.x = px + pw;
       player.vx = 0;
     }
   }
+
   player.y += player.vy * dt;
-  for (const [px, py, pw, ph] of L.platforms) {
+  for (let i = 0; i < L.platforms.length; i++) {
+    const [px, py, pw, ph] = L.platforms[i];
+    const isPhasing = (game.levelIndex === 2 || game.levelIndex === 3 || game.levelIndex === 5) && (i % 2 === 1);
+    if (isPhasing && (game.phaseTimer % 4 >= 2.5)) continue;
+
     if (overlap(player.x, player.y, player.w, player.h, px, py, pw, ph)) {
       if (player.vy > 0) {
-        player.y = py - player.h; player.grounded = true;
-        player.jumpsLeft = 2; 
+        player.y = py - player.h; player.grounded = true; player.jumpsLeft = 2; 
         if (!wasGrounded && player.vy > 500) dust(player.x + player.w / 2, player.y + player.h, 8);
         player.vy = 0;
       } else if (player.vy < 0) {
@@ -441,15 +477,13 @@ function update(dt) {
 
   for (const cp of L.checkpoints) {
     if (Math.abs(player.x - cp.x) < 30 && Math.abs(player.y - cp.y) < 90 && game.checkpoint.x !== cp.x) {
-      game.checkpoint = { ...cp };
-      dust(cp.x, cp.y + 80, 14, 80);
+      game.checkpoint = { ...cp }; dust(cp.x, cp.y + 80, 14, 80);
     }
   }
 
   for (const [hx, hy, hw, hh] of (L.hazards || [])) {
     if (overlap(player.x, player.y, player.w, player.h, hx, hy - 6, hw, hh + 6)) {
-      game.deaths++; game.audioDamp = 0.15;
-      dust(player.x + player.w / 2, player.y + player.h / 2, 16, 240);
+      game.deaths++; game.audioDamp = 0.15; dust(player.x + player.w / 2, player.y + player.h / 2, 16, 240);
       respawn(); return;
     }
   }
@@ -491,13 +525,15 @@ function update(dt) {
   }
 
   for (let p of ambientParticles) {
-    p.x += p.speedX * dt; p.y += p.speedY * dt;
+    // Incorporate rhythmic structural pulse adjustments to drift physics speeds
+    const beatVelocityFactor = 1.0 + 0.5 * Math.abs(Math.sin(performance.now() / 380));
+    p.x += p.speedX * beatVelocityFactor * dt; p.y += p.speedY * dt;
     if (p.x < -20) p.x = W + 20; if (p.y < -20) p.y = H + 20;
   }
 }
 
 function render() {
-  if (game.state === 'INTRO') return;
+  if (game.state === 'MENU' || game.state === 'INTRO') return;
 
   if (bg.skyOk) {
     const s = Math.max(W / bg.sky.width, H / bg.sky.height);
@@ -508,6 +544,9 @@ function render() {
 
   if (game.state === 'STORY') { renderStory(); return; }
   if (game.state === 'END') { renderEnd(); return; }
+
+  // --- INJECT PROGRAMMATIC COLOR BLOOM ENVELOPE ---
+  ctx.filter = "grayscale(" + ((1.0 - game.bloom) * 100) + "%)";
 
   const mood = game.level.mood || { veil: [105,125,148], grade: null, darken: 0 };
   const [vr, vg, vb] = mood.veil;
@@ -527,24 +566,34 @@ function render() {
   layer(bg.debris, bg.debrisOk, 1.25, 0.35, 1.5);
 
   ctx.save();
+  // Ambient particle expansion tied to procedural audio-reactive oscillator triggers
+  const pulseScale = 1.0 + 0.4 * Math.abs(Math.sin(performance.now() / 380));
   for (let p of ambientParticles) {
     ctx.fillStyle = `rgba(223, 232, 245, ${p.alpha})`;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * pulseScale, 0, Math.PI * 2); ctx.fill();
   }
   ctx.restore();
 
   ctx.save();
-  ctx.translate(W / 2, H / 2);
-  ctx.scale(cam.zoom, cam.zoom);
-  ctx.translate(-cam.x, -cam.y);
+  ctx.translate(W / 2, H / 2); ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
 
   const L = game.level;
-  for (const [px, py, pw, ph] of L.platforms) {
+  for (let i = 0; i < L.platforms.length; i++) {
+    const [px, py, pw, ph] = L.platforms[i];
+    const isPhasing = (game.levelIndex === 2 || game.levelIndex === 3 || game.levelIndex === 5) && (i % 2 === 1);
+    
+    ctx.save();
+    if (isPhasing) {
+      const cycle = game.phaseTimer % 4;
+      if (cycle < 2.0) ctx.globalAlpha = 1.0;
+      else if (cycle < 2.5) ctx.globalAlpha = 0.35 + 0.15 * Math.sin(performance.now() / 40); // Flashing context warning
+      else ctx.globalAlpha = 0.08; // Translucent outline phase
+    }
     ctx.fillStyle = '#060b17'; ctx.fillRect(px, py, pw, ph);
     ctx.fillStyle = 'rgba(157,184,224,0.20)'; ctx.fillRect(px, py, pw, 3);
+    ctx.restore();
   }
 
-  // Draw Springs / Kinetic Seals
   for (const [sx, sy, sw, sh] of (L.springs || [])) {
     ctx.fillStyle = '#15243f'; ctx.fillRect(sx, sy, sw, sh);
     ctx.fillStyle = 'rgba(223, 232, 245, 0.6)'; ctx.fillRect(sx, sy, sw, 2);
@@ -574,28 +623,24 @@ function render() {
   }
   ctx.globalAlpha = 1;
 
-  // --- RENDERING THREAT ENTITIES ---
   for (let e of enemies) {
-    ctx.save();
-    ctx.translate(e.x + e.w / 2, e.y + e.h);
-    // Red aura indicators if ninja stalker detects player coordinates
+    ctx.save(); ctx.translate(e.x + e.w / 2, e.y + e.h);
     if (e.isAggro) {
-      ctx.shadowColor = 'rgba(235, 95, 95, 0.75)';
-      ctx.shadowBlur = 14 + 6 * Math.sin(performance.now() / 90);
+      ctx.shadowColor = 'rgba(235, 95, 95, 0.75)'; ctx.shadowBlur = 14 + 6 * Math.sin(performance.now() / 90);
     } else {
-      ctx.shadowColor = 'rgba(223, 232, 245, 0.3)';
-      ctx.shadowBlur = 8;
+      ctx.shadowColor = 'rgba(223, 232, 245, 0.3)'; ctx.shadowBlur = 8;
     }
     ctx.fillStyle = e.type === 'stalker' ? '#08040f' : '#030712';
-    ctx.beginPath();
-    ctx.moveTo(-e.w/2, 0); ctx.lineTo(-e.w/3, -e.h);
+    ctx.beginPath(); ctx.moveTo(-e.w/2, 0); ctx.lineTo(-e.w/3, -e.h);
     ctx.lineTo(e.w/3, -e.h); ctx.lineTo(e.w/2, 0);
-    ctx.closePath(); ctx.fill();
-    ctx.restore();
+    ctx.closePath(); ctx.fill(); ctx.restore();
   }
 
   drawPlayer();
   ctx.restore();
+
+  // Reset operational filter to protect screen-space typography layers
+  ctx.filter = "none";
 
   const gm = game.level.mood;
   if (gm && gm.grade) { ctx.fillStyle = gm.grade; ctx.fillRect(0, 0, W, H); }
@@ -610,6 +655,7 @@ function render() {
 }
 
 function renderEnd() {
+  ctx.filter = "none";
   ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'center'; ctx.fillStyle = '#dfe8f5'; ctx.font = '30px Georgia, serif';
   ctx.fillText('CLARITY ACHIEVED', W / 2, H * 0.4);
@@ -618,6 +664,7 @@ function renderEnd() {
 }
 
 function renderStory() {
+  ctx.filter = "none";
   ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H);
   const L = game.level;
   ctx.textAlign = 'center'; ctx.fillStyle = '#9db8e0'; ctx.font = '14px Georgia, serif';
@@ -642,7 +689,7 @@ function fogDrift() {
   for (let i = 0; i < 3; i++) {
     const fx = ((t * (8 + i * 5) + i * 700) % (W + 800)) - 400;
     const fy = H * (0.45 + i * 0.16) - (cam.y - 500) * 0.1;
-    const r = 260 + i * 90;
+    const r = (260 + i * 90) * (1.0 + 0.1 * Math.sin(performance.now() / 380));
     const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, r);
     g.addColorStop(0, 'rgba(140, 160, 185, 0.06)'); g.addColorStop(1, 'rgba(140, 160, 185, 0)');
     ctx.fillStyle = g; ctx.fillRect(fx - r, fy - r, r * 2, r * 2);
@@ -652,12 +699,14 @@ function fogDrift() {
 function lightShafts() {
   const t = performance.now() / 1000;
   ctx.save();
+  // Modulate light beam size in alignment with procedural audio-reactive oscillator triggers
+  const pulseWidthMod = 35 * Math.sin(t * 0.4);
   for (let i = 0; i < 2; i++) {
     const baseX = W * (0.25 + i * 0.45) - (cam.x * 0.05) % W;
     const a = 0.02 + 0.015 * Math.sin(t * 0.3 + i * 2);
     ctx.fillStyle = `rgba(220, 230, 245, ${Math.max(0, a)})`;
-    ctx.beginPath(); ctx.moveTo(baseX, -20); ctx.lineTo(baseX + 130, -20);
-    ctx.lineTo(baseX + 280, H); ctx.lineTo(baseX + 60, H); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(baseX, -20); ctx.lineTo(baseX + 130 + pulseWidthMod, -20);
+    ctx.lineTo(baseX + 280 + pulseWidthMod, H); ctx.lineTo(baseX + 60, H); ctx.closePath(); ctx.fill();
   }
   ctx.restore();
 }
@@ -680,4 +729,9 @@ function loop(now) {
   const dt = Math.min((now - last) / 1000, 1 / 30); last = now;
   update(dt); render(); requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);
+
+// Initial structural launcher hook
+window.onload = () => {
+  setupSaveMenu();
+  requestAnimationFrame(loop);
+};
