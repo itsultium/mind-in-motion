@@ -1,5 +1,5 @@
 // ============================================================
-// MIND IN MOTION — game.js (Cinematic Engine Edition)
+// MIND IN MOTION — game.js (Cinematic & Mechanics Edition)
 // States: INTRO -> STORY -> PLAY -> FADE -> next STORY
 // ============================================================
 
@@ -61,17 +61,22 @@ const game = {
 const player = {
   x: 0, y: 0, vx: 0, vy: 0, w: 34, h: 80,
   dir: 1, grounded: false, coyote: 0, buffer: 0,
-  animTime: 0, frame: SHEET.idle
+  animTime: 0, frame: SHEET.idle,
+  jumpsLeft: 2,            // Double Jump Core State
+  stepTimer: 0             // Footstep cadence tracker
 };
 
 const cam = { x: 0, y: 0, zoom: 1.0, targetZoom: 1.0 };
 const particles = [];
 const ambientParticles = [];
+const enemies = [];        // Dynamic enemy ecosystem array
 
-// ---------- dual-channel audio mixer system ----------
+// ---------- dual-channel audio + sfx mixer system ----------
 const audioChannels = {
   nature: new Audio('nature.mp3'),
   music: new Audio('https://res.cloudinary.com/dcjst7sod/video/upload/v1781299773/Background_music_of_gameplay_uutorc.mp3'),
+  sfxJump: new Audio('sfx_jump.mp3'),
+  sfxStep: new Audio('sfx_step.mp3'),
   initialized: false,
   muted: false,
   currentMusicTarget: 0.0
@@ -89,6 +94,20 @@ function startAudio() {
   audioChannels.music.play().catch(() => {});
 
   audioChannels.initialized = true;
+}
+
+function playSFX(type) {
+  if (!audioChannels.initialized || audioChannels.muted) return;
+  if (type === 'jump') {
+    audioChannels.sfxJump.currentTime = 0;
+    audioChannels.sfxJump.volume = 0.18;
+    audioChannels.sfxJump.play().catch(() => {});
+  }
+  if (type === 'step') {
+    audioChannels.sfxStep.currentTime = 0;
+    audioChannels.sfxStep.volume = 0.08;
+    audioChannels.sfxStep.play().catch(() => {});
+  }
 }
 
 function updateAudioMixing(dt) {
@@ -128,33 +147,56 @@ function toggleMute() {
 const gatekeeper = document.getElementById('gatekeeper');
 const videoElement = document.getElementById('intro-video');
 
-gatekeeper.addEventListener('click', () => {
-  gatekeeper.style.opacity = '0';
-  setTimeout(() => gatekeeper.remove(), 600);
-  
-  // Safe operational stream deployment
-  if (videoElement) {
-    videoElement.play().catch(e => console.log("Stream delivery blocked:", e));
-  }
-});
-
-videoElement.addEventListener('ended', () => {
-  startAudio(); 
-  videoElement.style.opacity = '0';
-  setTimeout(() => {
-    videoElement.remove();
-    loadLevel(0);
-  }, 1200);
-});
-
-function skipVideo() {
-  if (game.state === 'INTRO') {
+if (gatekeeper) {
+  gatekeeper.addEventListener('click', () => {
+    gatekeeper.style.opacity = '0';
+    setTimeout(() => gatekeeper.remove(), 600);
     startAudio();
+    if (videoElement) {
+      videoElement.play().catch(e => {
+        console.log("Audio block active, running low-power protocol:", e);
+        videoElement.muted = true;
+        videoElement.play().catch(err => console.log("Critical execution lock:", err));
+      });
+    }
+  });
+}
+
+if (videoElement) {
+  videoElement.addEventListener('ended', () => {
     videoElement.style.opacity = '0';
     setTimeout(() => {
       if (videoElement) videoElement.remove();
       loadLevel(0);
     }, 1200);
+  });
+}
+
+function skipVideo() {
+  if (game.state === 'INTRO') {
+    if (videoElement) videoElement.style.opacity = '0';
+    setTimeout(() => {
+      if (videoElement) videoElement.remove();
+      loadLevel(0);
+    }, 1200);
+  }
+}
+
+// ---------- enemy procedural injection system ----------
+function initLevelEnemies() {
+  enemies.length = 0;
+  // Places echo shadows perfectly on your defined structural platforms
+  if (game.levelIndex === 0) {
+    enemies.push({ x: 3100, y: 640 - 50, minX: 2880, maxX: 3450, speed: 90, dir: 1, w: 26, h: 50 });
+    enemies.push({ x: 4300, y: 400 - 50, minX: 4200, maxX: 4900, speed: 110, dir: -1, w: 26, h: 50 });
+    enemies.push({ x: 6400, y: 640 - 50, minX: 6150, maxX: 6900, speed: 100, dir: 1, w: 26, h: 50 });
+  } else if (game.levelIndex === 1) {
+    enemies.push({ x: 5000, y: 300 - 50, minX: 4980, maxX: 5300, speed: 80, dir: 1, w: 26, h: 50 });
+    enemies.push({ x: 7800, y: 240 - 50, minX: 7650, maxX: 8200, speed: 130, dir: -1, w: 26, h: 50 });
+  } else if (game.levelIndex === 2) {
+    enemies.push({ x: 3200, y: 600 - 50, minX: 2900, maxX: 4200, speed: 150, dir: 1, w: 26, h: 50 });
+  } else if (game.levelIndex === 3) {
+    enemies.push({ x: 3800, y: 650 - 50, minX: 3200, maxX: 4800, speed: 120, dir: 1, w: 26, h: 50 });
   }
 }
 
@@ -181,6 +223,7 @@ function loadLevel(i) {
   game.storyTimer = 0;
   game.fade = 0;
   initAmbientParticles();
+  initLevelEnemies();
   respawn();
 }
 
@@ -188,6 +231,7 @@ function respawn() {
   player.x = game.checkpoint.x;
   player.y = game.checkpoint.y;
   player.vx = 0; player.vy = 0;
+  player.jumpsLeft = 2; 
   cam.x = player.x; cam.y = player.y;
   cam.zoom = 1.0; cam.targetZoom = 1.0;
 }
@@ -210,7 +254,6 @@ function anyKeyAdvance() {
 }
 
 function setKey(code, down) {
-  if (down) startAudio();
   if (down && anyKeyAdvance()) return;
   if (code === 'KeyM' && down) { toggleMute(); return; }
   if (code === 'ArrowLeft' || code === 'KeyA') keys.left = down;
@@ -268,6 +311,22 @@ function update(dt) {
   }
   if (game.state === 'END') return;
 
+  // --- ENEMY LIFECYCLE ENGINE ---
+  for (let e of enemies) {
+    e.x += e.speed * e.dir * dt;
+    if (e.x < e.minX) { e.x = e.minX; e.dir = 1; }
+    if (e.x > e.maxX) { e.x = e.maxX; e.dir = -1; }
+
+    // Intersect evaluation against player coordinates
+    if (overlap(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h)) {
+      game.deaths++;
+      game.audioDamp = 0.15;
+      dust(player.x + player.w / 2, player.y + player.h / 2, 20, 260);
+      respawn();
+      return;
+    }
+  }
+
   const L = game.level;
   const accel = player.grounded ? PHYS.moveAccel : PHYS.airAccel;
   let move = 0;
@@ -288,10 +347,25 @@ function update(dt) {
   player.coyote = Math.max(0, player.coyote - dt);
   player.buffer = Math.max(0, player.buffer - dt);
 
-  if (player.buffer > 0 && (player.grounded || player.coyote > 0)) {
-    player.vy = PHYS.jumpVel;
-    player.grounded = false; player.coyote = 0; player.buffer = 0;
+  // --- DOUBLE JUMP EXECUTION LOOP ---
+  if (player.buffer > 0) {
+    if (player.grounded || player.coyote > 0) {
+      player.vy = PHYS.jumpVel;
+      player.grounded = false; player.coyote = 0; player.buffer = 0;
+      player.jumpsLeft = 1; 
+      playSFX('jump');
+      dust(player.x + player.w / 2, player.y + player.h, 8);
+    } else if (player.jumpsLeft > 0) {
+      // Air roll jump execution
+      player.vy = PHYS.jumpVel * 0.95; 
+      player.buffer = 0;
+      player.jumpsLeft = 0; 
+      playSFX('jump');
+      // Visual feedback paint explosion puff
+      dust(player.x + player.w / 2, player.y + player.h / 2, 14, 220);
+    }
   }
+  
   if (!jumpHeld && player.vy < 0) {
     player.vy *= 1 - (1 - PHYS.jumpCut) * Math.min(1, dt * 14);
   }
@@ -312,6 +386,7 @@ function update(dt) {
     if (overlap(player.x, player.y, player.w, player.h, px, py, pw, ph)) {
       if (player.vy > 0) {
         player.y = py - player.h; player.grounded = true;
+        player.jumpsLeft = 2; // Full grounding replenish trigger
         if (!wasGrounded && player.vy > 500) dust(player.x + player.w / 2, player.y + player.h, 8);
         player.vy = 0;
       } else if (player.vy < 0) {
@@ -344,7 +419,16 @@ function update(dt) {
     respawn(); 
   }
 
+  // --- DYNAMIC FOOTSTEP TICK GENERATOR ---
   const speed = Math.abs(player.vx);
+  if (player.grounded && speed > 30) {
+    player.stepTimer += dt * (speed / PHYS.maxSpeed);
+    if (player.stepTimer > 0.32) { // Play stride audio clip loop sequentially
+      playSFX('step');
+      player.stepTimer = 0;
+    }
+  }
+
   if (!player.grounded) {
     player.frame = player.vy < 0 ? SHEET.jump : SHEET.fall;
   } else if (speed > 20) {
@@ -449,6 +533,28 @@ function render() {
     ctx.globalAlpha = 1 - p.t / p.life; ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
   }
   ctx.globalAlpha = 1;
+
+  // --- RENDER ENEMIES (MELANCHOLY ECHOES) ---
+  for (let e of enemies) {
+    ctx.save();
+    ctx.translate(e.x + e.w / 2, e.y + e.h);
+    
+    // Ghostly neon canvas pulse outline
+    const aura = 8 + 4 * Math.sin(performance.now() / 180);
+    ctx.shadowColor = 'rgba(223, 232, 245, 0.4)';
+    ctx.shadowBlur = aura;
+
+    // Body silhouette style matching the environment tone
+    ctx.fillStyle = '#030712';
+    ctx.beginPath();
+    ctx.moveTo(-e.w/2, 0);
+    ctx.lineTo(-e.w/4, -e.h);
+    ctx.lineTo(e.w/4, -e.h);
+    ctx.lineTo(e.w/2, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
 
   drawPlayer();
   ctx.restore();
