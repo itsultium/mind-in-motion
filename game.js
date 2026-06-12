@@ -1,5 +1,5 @@
 // ============================================================
-// MIND IN MOTION — game.js (Performance & Stealth Optimized)
+// MIND IN MOTION — game.js (Performance & Controls Restored)
 // States: MENU -> INTRO -> STORY -> PLAY -> FADE -> next STORY
 // ============================================================
 
@@ -325,7 +325,7 @@ function setKey(code, down) {
 }
 
 window.addEventListener('keydown', e => { setKey(e.code, true); e.preventDefault(); });
-window.addEventListener('keyup',   e => setKey(code, false));
+window.addEventListener('keyup',   e => setKey(e.code, false)); // FIXED: Changed "code" to "e.code"
 
 function bindBtn(id, code) {
   const el = document.getElementById(id);
@@ -558,7 +558,6 @@ function render() {
   ctx.save();
   const pulseScale = 1.0 + 0.4 * Math.abs(Math.sin(performance.now() / 380));
   for (let p of ambientParticles) {
-    // HIGH PERFORMANCE COLOR CONTROL MATRIX
     if (game.bloom < 1.0) {
       ctx.fillStyle = `rgba(140, 155, 180, ${p.alpha * 0.4})`;
     } else {
@@ -593,12 +592,10 @@ function render() {
     ctx.fillStyle = 'rgba(223, 232, 245, 0.6)'; ctx.fillRect(sx, sy, sw, 2);
   }
 
-  // --- STEALTH OPTIMIZED HAZARD DISPLAY ---
   for (const [hx, hy, hw, hh] of (L.hazards || [])) {
-    ctx.fillStyle = '#060b17'; // Blends directly with your baseline ground color
+    ctx.fillStyle = '#060b17'; 
     ctx.fillRect(hx, hy - 4, hw, hh + 4);
     
-    // Subtle, slow-shifting smoky dust mist indicators instead of blinding white dots
     ctx.fillStyle = 'rgba(24, 38, 68, 0.4)';
     const slowScroll = (performance.now() * 0.03) % (hw - 40);
     ctx.fillRect(hx + slowScroll, hy - 2, 35, 2);
@@ -624,116 +621,6 @@ function render() {
     ctx.save(); ctx.translate(e.x + e.w / 2, e.y + e.h);
     ctx.fillStyle = e.type === 'stalker' ? '#08040f' : '#030712';
     
-    // Smooth vector ring indicators to safely bypass shadowBlur performance hits
     if (e.isAggro) {
       ctx.fillStyle = 'rgba(235, 95, 95, 0.3)';
-      ctx.beginPath(); ctx.arc(0, -e.h/2, e.h * 0.7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#0a0202';
-    }
-    
-    ctx.beginPath();
-    ctx.moveTo(-e.w/2, 0); ctx.lineTo(-e.w/3, -e.h);
-    ctx.lineTo(e.w/3, -e.h); ctx.lineTo(e.w/2, 0);
-    ctx.closePath(); ctx.fill(); ctx.restore();
-  }
-
-  // --- SYSTEM-FRIENDLY TINT GRAPHICS BLOOM VECTOR ---
-  if (game.bloom < 1.0) {
-    ctx.save();
-    ctx.globalCompositeOperation = "color";
-    ctx.fillStyle = `rgba(110, 125, 145, ${1.0 - game.bloom})`;
-    ctx.fillRect(player.x - W, player.y - H, W * 2, H * 2);
-    ctx.restore();
-  }
-
-  drawPlayer();
-  ctx.restore();
-
-  const gm = game.level.mood;
-  if (gm && gm.grade) { ctx.fillStyle = gm.grade; ctx.fillRect(0, 0, W, H); }
-  if (gm && gm.darken) { ctx.fillStyle = `rgba(4, 6, 14, ${gm.darken})`; ctx.fillRect(0, 0, W, H); }
-
-  ctx.fillStyle = 'rgba(157,184,224,0.4)'; ctx.font = '12px Georgia, serif';
-  ctx.fillText(`${game.level.subtitle} — ${game.level.name}`, 14, H - 16);
-
-  if (game.state === 'FADE' || game.fade > 0) {
-    ctx.fillStyle = `rgba(5, 9, 15, ${game.fade})`; ctx.fillRect(0, 0, W, H);
-  }
-}
-
-function renderEnd() {
-  ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H);
-  ctx.textAlign = 'center'; ctx.fillStyle = '#dfe8f5'; ctx.font = '30px Georgia, serif';
-  ctx.fillText('CLARITY ACHIEVED', W / 2, H * 0.4);
-  ctx.fillStyle = 'rgba(223,232,245,0.75)'; ctx.font = '15px Georgia, serif';
-  ctx.fillText(`He fell ${game.deaths} times. His mind is finally clear.`, W / 2, H * 0.4 + 40);
-}
-
-function renderStory() {
-  ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H);
-  const L = game.level;
-  ctx.textAlign = 'center'; ctx.fillStyle = '#9db8e0'; ctx.font = '14px Georgia, serif';
-  ctx.fillText(L.subtitle, W / 2, H * 0.32);
-  ctx.fillStyle = '#dfe8f5'; ctx.font = '34px Georgia, serif';
-  ctx.fillText(L.name, W / 2, H * 0.32 + 44);
-  ctx.font = '16px Georgia, serif'; ctx.fillStyle = 'rgba(223,232,245,0.85)';
-  for (let i = 0; i < game.storyLine; i++) ctx.fillText(L.story[i], W / 2, H * 0.5 + i * 30);
-}
-
-function layer(img, ok, p, hFrac, gap = 1) {
-  if (!ok) return;
-  const lh = H * hFrac; const lw = img.width * (lh / img.height); const span = lw * gap;
-  let xOffset = -((cam.x * p) % span);
-  if (xOffset > 0) xOffset -= span;
-  const targetY = (H - lh) - (cam.y - 500) * (p * 0.35);
-  for (let x = xOffset; x < W; x += span) ctx.drawImage(img, x, targetY, lw, lh);
-}
-
-function fogDrift() {
-  const t = performance.now() / 1000;
-  for (let i = 0; i < 3; i++) {
-    const fx = ((t * (8 + i * 5) + i * 700) % (W + 800)) - 400;
-    const fy = H * (0.45 + i * 0.16) - (cam.y - 500) * 0.1;
-    const r = (260 + i * 90) * (1.0 + 0.1 * Math.sin(performance.now() / 380));
-    const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, r);
-    g.addColorStop(0, 'rgba(140, 160, 185, 0.06)'); g.addColorStop(1, 'rgba(140, 160, 185, 0)');
-    ctx.fillStyle = g; ctx.fillRect(fx - r, fy - r, r * 2, r * 2);
-  }
-}
-
-function lightShafts() {
-  const t = performance.now() / 1000;
-  ctx.save();
-  const pulseWidthMod = 35 * Math.sin(t * 0.4);
-  for (let i = 0; i < 2; i++) {
-    const baseX = W * (0.25 + i * 0.45) - (cam.x * 0.05) % W;
-    const a = 0.02 + 0.015 * Math.sin(t * 0.3 + i * 2);
-    ctx.fillStyle = `rgba(220, 230, 245, ${Math.max(0, a)})`;
-    ctx.beginPath(); ctx.moveTo(baseX, -20); ctx.lineTo(baseX + 130 + pulseWidthMod, -20);
-    ctx.lineTo(baseX + 280 + pulseWidthMod, H); ctx.lineTo(baseX + 60, H); ctx.closePath(); ctx.fill();
-  }
-  ctx.restore();
-}
-
-function drawPlayer() {
-  const drawH = 100; const drawW = drawH * SHEET.cw / SHEET.ch;
-  const cx = player.x + player.w / 2; const feetY = player.y + player.h;
-  ctx.save(); ctx.translate(cx, feetY); ctx.scale(player.dir, 1);
-  if (spriteReady) {
-    ctx.drawImage(sprite, player.frame * SHEET.cw, 0, SHEET.cw, SHEET.ch, -drawW / 2, -drawH + (drawH * SHEET.feetPad / SHEET.ch), drawW, drawH);
-  } else {
-    ctx.fillStyle = '#05090f'; ctx.fillRect(-player.w / 2, -player.h, player.w, player.h);
-  }
-  ctx.restore();
-}
-
-let last = performance.now();
-function loop(now) {
-  const dt = Math.min((now - last) / 1000, 1 / 30); last = now;
-  update(dt); render(); requestAnimationFrame(loop);
-}
-
-window.onload = () => {
-  setupSaveMenu();
-  requestAnimationFrame(loop);
-};
+      ctx.beginPath();
