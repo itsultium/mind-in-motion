@@ -38,7 +38,7 @@ bg.debris.src = 'bg_debris.png';   bg.debris.onload = () => bg.debrisOk = true;
 bg.occl.src = 'bg_occl_thin.png';   bg.occl.onload = () => bg.occlOk = true;
 bg.shard.src = 'bg_occl_shard.png'; bg.shard.onload = () => bg.shardOk = true;
 
-// ---------- chapter illustration preloader (Item 2) ----------
+// ---------- chapter illustration preloader ----------
 const cardImages = [];
 const cardImagesOk = Array(7).fill(false);
 for (let i = 0; i < 7; i++) {
@@ -76,7 +76,7 @@ const player = {
   animTime: 0, frame: SHEET.idle,
   jumpsLeft: 2,        
   stepTimer: 0,
-  // Juice Architecture
+  // Juice Extensions
   isDying: false,
   deathTimer: 0,
   squashX: 1,
@@ -173,7 +173,7 @@ function synthSFX(type) {
 function updateAudioMixing(dt) {
   if (!audioChannels.initialized || audioChannels.muted) return;
   if (game.state === 'PLAY') {
-    audioChannels.currentMusicTarget = (game.levelIndex === 6 && player.x > 4200) ? 0.45 : 0.25; // Music swells at Finale
+    audioChannels.currentMusicTarget = (game.levelIndex === 6 && player.x > 4200) ? 0.45 : 0.25;
   } else if (game.state === 'STORY') {
     audioChannels.currentMusicTarget = 0.02; 
   } else {
@@ -194,7 +194,7 @@ function toggleMute() {
   audioChannels.music.volume = (game.state === 'PLAY' ? 0.25 : 0.02) * masterSwitch;
 }
 
-// ---------- save & stage select infrastructure ----------
+// ---------- interactive menu select & cache save system ----------
 const gatekeeper = document.getElementById('gatekeeper');
 const videoElement = document.getElementById('intro-video');
 const newJourneyBtn = document.getElementById('menu-new-btn');
@@ -320,16 +320,22 @@ function respawn() {
   cam.x = player.x; cam.y = player.y;
   cam.zoom = 1.0; cam.targetZoom = 1.0;
   initLevelEnemies(); 
+
+  // Reset keyboard flags explicitly on respawn to completely kill stuck runner motions
+  keys.left = false;
+  keys.right = false;
+  jumpHeld = false;
+  player.buffer = 0;
 }
 
 function triggerDeath() {
   if (player.isDying) return;
   player.isDying = true;
-  player.deathTimer = 0.75; // Time allocation for static particle dissolve
+  player.deathTimer = 0.75; 
   game.deaths++;
   game.audioDamp = 0.15;
   
-  // Dissolve particle generation (Item 1)
+  // Spark static digital particles outward
   for (let i = 0; i < 40; i++) {
     particles.push({
       x: player.x + Math.random() * player.w,
@@ -354,6 +360,11 @@ function anyKeyAdvance() {
       game.storyLine = game.level.story.length;
     } else {
       game.state = 'PLAY';
+      // Completely flush operational state trackers on story exit
+      keys.left = false;
+      keys.right = false;
+      jumpHeld = false;
+      player.buffer = 0;
     }
     return true;
   }
@@ -361,16 +372,27 @@ function anyKeyAdvance() {
 }
 
 function setKey(code, down) {
-  if (game.state === 'MENU' || player.isDying) return;
-  if (down && anyKeyAdvance()) return;
-  if (code === 'KeyM' && down) { toggleMute(); return; }
-  if (code === 'ArrowLeft' || code === 'KeyA') keys.left = down;
-  if (code === 'ArrowRight' || code === 'KeyD') keys.right = down;
-  if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') {
-    if (down && !jumpHeld) player.buffer = PHYS.jumpBuffer;
-    jumpHeld = down;
+  // 1. GLOBAL UNBOUND OVERRIDE: Release state must always cleanly drop, no exceptions
+  if (!down) {
+    if (code === 'ArrowLeft' || code === 'KeyA') keys.left = false;
+    if (code === 'ArrowRight' || code === 'KeyD') keys.right = false;
+    if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') jumpHeld = false;
+    return;
   }
-  if (code === 'KeyR' && down && game.state === 'PLAY') { triggerDeath(); }
+
+  // 2. TIMING INTERRUPTS: Gate logic during screens and freeze frames
+  if (game.state === 'MENU' || player.isDying) return;
+  if (anyKeyAdvance()) return;
+  if (code === 'KeyM') { toggleMute(); return; }
+
+  // 3. SECURE ACTION BINDINGS
+  if (code === 'ArrowLeft' || code === 'KeyA') keys.left = true;
+  if (code === 'ArrowRight' || code === 'KeyD') keys.right = true;
+  if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') {
+    if (!jumpHeld) player.buffer = PHYS.jumpBuffer;
+    jumpHeld = true;
+  }
+  if (code === 'KeyR' && game.state === 'PLAY') { triggerDeath(); }
 }
 
 window.addEventListener('keydown', e => { setKey(e.code, true); e.preventDefault(); });
@@ -420,7 +442,7 @@ function update(dt) {
   }
   if (game.state === 'END') return;
 
-  // Easing Squash and Stretch calculations (Item 1)
+  // Fluid physics layout decays squash transformations smoothly
   player.squashX += (1 - player.squashX) * 10 * dt;
   player.squashY += (1 - player.squashY) * 10 * dt;
 
@@ -428,7 +450,6 @@ function update(dt) {
   if (player.isDying) {
     player.deathTimer -= dt;
     if (player.deathTimer <= 0) respawn();
-    // Advance death particles inside countdown
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i]; p.t += dt;
       if (p.t > p.life) { particles.splice(i, 1); continue; }
@@ -447,7 +468,7 @@ function update(dt) {
     if (overlap(player.x, player.y, player.w, player.h, sx, sy, sw, sh)) {
       player.vy = -spower; player.grounded = false; player.jumpsLeft = 2; 
       synthSFX('spring'); dust(player.x + player.w / 2, player.y + player.h, 24, 280);
-      player.squashX = 0.75; player.squashY = 1.35; // Vertical stretch on springboard launch
+      player.squashX = 0.75; player.squashY = 1.35;
     }
   }
 
@@ -506,7 +527,7 @@ function update(dt) {
   }
 
   const wasGrounded = player.grounded;
-  const preCollisionVy = player.vy; // Store landing speed to compute squash juice
+  const preCollisionVy = player.vy; 
   player.grounded = false;
 
   player.x += player.vx * dt;
@@ -531,7 +552,7 @@ function update(dt) {
       if (player.vy > 0) {
         player.y = py - player.h; player.grounded = true; player.jumpsLeft = 2; 
         
-        // Landing Squash Implementation (Item 1)
+        // Execute landing squash transformations dynamically
         if (!wasGrounded && preCollisionVy > 450) { 
           dust(player.x + player.w / 2, player.y + player.h, 10);
           const landingForce = Math.min(1.4, 1.0 + (preCollisionVy - 450) * 0.0007);
@@ -550,7 +571,7 @@ function update(dt) {
     if (Math.abs(player.x - cp.x) < 30 && Math.abs(player.y - cp.y) < 90 && game.checkpoint.x !== cp.x) {
       game.checkpoint = { ...cp }; 
       dust(cp.x, cp.y + 80, 14, 80);
-      synthSFX('checkpoint'); // soft checkpoint chime (Item 1)
+      synthSFX('checkpoint');
     }
   }
 
@@ -580,7 +601,7 @@ function update(dt) {
 
   if (game.levelIndex === 0 && player.x > 4000 && player.x < 5100) cam.targetZoom = 0.55; 
   else if (game.levelIndex === 3 || game.levelIndex === 5) cam.targetZoom = 0.50; 
-  else if (game.levelIndex === 6 && player.x > 4000) cam.targetZoom = 0.45; // Camera pans out to frame final silhouette
+  else if (game.levelIndex === 6 && player.x > 4000) cam.targetZoom = 0.45;
   else cam.targetZoom = 0.85;
   
   cam.zoom += (cam.targetZoom - cam.zoom) * Math.min(1, dt * 2.5);
@@ -595,7 +616,7 @@ function update(dt) {
     const p = particles[i]; p.t += dt;
     if (p.t > p.life) { particles.splice(i, 1); continue; }
     p.x += p.vx * dt; p.y += p.vy * dt; 
-    if (!p.isStatic) p.vy += 300 * dt; // Normal dust particles drop; static particles float away outward
+    if (!p.isStatic) p.vy += 300 * dt; 
   }
 
   for (let p of ambientParticles) {
@@ -650,14 +671,13 @@ function render() {
   ctx.save();
   ctx.translate(W / 2, H / 2); ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
 
-  // ---------- THE FINALE PRESENCE: SILHOUETTE BRAIN (Item 3) ----------
+  // ---------- CHAPTER VII CEREBRAL SILHOUETTE PRESENCE ----------
   if (game.levelIndex === 6) {
     ctx.save();
     ctx.fillStyle = 'rgba(6, 11, 23, 0.92)';
     ctx.shadowColor = 'rgba(157, 184, 224, 0.12)';
     ctx.shadowBlur = 60;
     
-    // Abstract massive cerebral structure drawn programmatically right before the end door
     ctx.beginPath();
     ctx.arc(5000, -20, 240, 0, Math.PI * 2);
     ctx.arc(5180, 20, 210, 0, Math.PI * 2);
@@ -665,7 +685,6 @@ function render() {
     ctx.arc(5020, 160, 150, 0, Math.PI * 2); 
     ctx.fill();
     
-    // Connective brain stem silhouette anchors
     ctx.beginPath();
     ctx.moveTo(4950, 160);
     ctx.quadraticCurveTo(4930, 300, 4800, 400);
@@ -716,12 +735,10 @@ function render() {
   const pulse = 0.55 + 0.25 * Math.sin(performance.now() / 400);
   ctx.fillStyle = `rgba(223,232,245,${pulse})`; ctx.fillRect(L.exit.x, L.exit.y, L.exit.w, L.exit.h);
 
-  // Render particle pipelines
   for (const p of particles) {
     ctx.save();
     ctx.globalAlpha = 1 - p.t / p.life; 
     if (p.isStatic) {
-      // Death dissolve square shards
       ctx.fillStyle = 'rgba(157, 184, 224, 0.85)';
       ctx.fillRect(p.x - 3, p.y - 3, 5, 5);
     } else {
@@ -773,10 +790,10 @@ function renderStory() {
   ctx.fillStyle = '#05090f';
   ctx.fillRect(0, 0, W, H);
 
-  // GRIS-Grade Title Plate Illustrations Integration (Item 2)
+  // Map generated illustrations behind text
   if (cardImagesOk[game.levelIndex]) {
     ctx.save();
-    ctx.globalAlpha = 0.22; // Subdued behind the typography layout
+    ctx.globalAlpha = 0.22; 
     const img = cardImages[game.levelIndex];
     const s = Math.max(W / img.width, H / img.height);
     ctx.drawImage(img, (W - img.width * s) / 2, (H - img.height * s) / 2, img.width * s, img.height * s);
@@ -818,7 +835,7 @@ function renderEnd() {
     : `He fell ${game.deaths} time${game.deaths === 1 ? '' : 's'}. He kept the suit clean anyway.`;
   ctx.fillText(line, W / 2, H * 0.38 + 40);
   
-  // Shareability Element Integration (Item 4)
+  // Showcase Tag Line
   ctx.fillStyle = 'rgba(157,184,224,0.4)';
   ctx.font = '11px Georgia, serif';
   ctx.fillText('BRUDER MOTION PORTFOLIO PIECE', W / 2, H * 0.55);
@@ -873,7 +890,7 @@ function lightShafts() {
   ctx.restore();
 }
 
-// ---------- player rendering matrix layout ----------
+// ---------- player physics render engine matrix transformation ----------
 function drawPlayer() {
   const drawH = 100;
   const drawW = drawH * SHEET.cw / SHEET.ch;
@@ -882,7 +899,6 @@ function drawPlayer() {
 
   ctx.save();
   ctx.translate(cx, feetY);
-  // Matrix transformation scaling controls squash & stretch (Item 1)
   ctx.scale(player.dir * player.squashX, player.squashY);
   if (spriteReady) {
     ctx.shadowColor = 'rgba(157, 184, 224, 0.6)';
