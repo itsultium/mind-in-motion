@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Mind in Motion</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #0a1228; touch-action: none; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #hud {
+    position: fixed; top: 10px; left: 12px; color: #9db8e0; opacity: 0.6;
+    font: 12px/1.4 Georgia, serif; letter-spacing: 1px; pointer-events: none;
+    user-select: none;
+  }
+  .btn {
+    position: fixed; bottom: 24px; width: 64px; height: 64px; border-radius: 50%;
+    background: rgba(157,184,224,0.12); border: 1px solid rgba(157,184,224,0.3);
+    color: #9db8e0; font-size: 24px; display: none; align-items: center;
+    justify-content: center; user-select: none; -webkit-user-select: none;
+  }
+  .btn:active { background: rgba(157,184,224,0.28); }
+  #btnL { left: 20px; }
+  #btnR { left: 100px; }
+  #btnJ { right: 24px; width: 76px; height: 76px; }
+  @media (pointer: coarse) { .btn { display: flex; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">ARROWS / WASD &nbsp;·&nbsp; SPACE TO JUMP &nbsp;·&nbsp; R RESTART · M MUTE</div>
+<div class="btn" id="btnL">&#9664;</div>
+<div class="btn" id="btnR">&#9654;</div>
+<div class="btn" id="btnJ">&#9650;</div>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
