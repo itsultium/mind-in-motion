@@ -1,6 +1,6 @@
 // ============================================================
-// MIND IN MOTION — game.js (Stage 2: Level System & Cinematic Polish)
-// States: STORY (chapter card) -> PLAY -> FADE -> next STORY
+// MIND IN MOTION — game.js (Cinematic Engine Edition)
+// States: INTRO -> STORY -> PLAY -> FADE -> next STORY
 // ============================================================
 
 const canvas = document.getElementById('c');
@@ -23,7 +23,7 @@ sprite.src = 'bruder_run_sheet.png';
 let spriteReady = false;
 sprite.onload = () => spriteReady = true;
 
-// ---------- background layers (FIXED EXTENSIONS TO MATCH YOUR FILES) ----------
+// ---------- background layers ----------
 const bg = {
   sky: new Image(), hills: new Image(), mono: new Image(),
   ruins: new Image(), debris: new Image(), occl: new Image(), shard: new Image(),
@@ -47,14 +47,15 @@ const PHYS = {
 
 // ---------- game state ----------
 const game = {
-  state: 'STORY',          // STORY | PLAY | FADE | END
+  state: 'INTRO',          // INTRO | STORY | PLAY | FADE | END
   levelIndex: 0,
   level: null,
-  checkpoint: null,        // last activated checkpoint {x, y}
-  fade: 0,                 // 0 transparent .. 1 black
-  storyLine: 0,            // lines revealed on the card
+  checkpoint: null,
+  fade: 0,
+  storyLine: 0,
   storyTimer: 0,
-  deaths: 0
+  deaths: 0,
+  audioDamp: 1.0           
 };
 
 const player = {
@@ -63,26 +64,98 @@ const player = {
   animTime: 0, frame: SHEET.idle
 };
 
-// ---------- camera & advanced systems ----------
-const cam = { 
-  x: 0, y: 0, 
-  zoom: 1.0, 
-  targetZoom: 1.0 
-};
-
+const cam = { x: 0, y: 0, zoom: 1.0, targetZoom: 1.0 };
 const particles = [];
 const ambientParticles = [];
 
-// Initialize ambient atmosphere (floating dust motes)
+// ---------- dual-channel audio mixer system ----------
+const audioChannels = {
+  nature: new Audio('nature.mp3'),
+  music: new Audio('https://res.cloudinary.com/dcjst7sod/video/upload/v1781299773/Background_music_of_gameplay_uutorc.mp3'),
+  initialized: false,
+  muted: false,
+  currentMusicTarget: 0.0
+};
+
+function startAudio() {
+  if (audioChannels.initialized) return;
+  
+  audioChannels.nature.loop = true;
+  audioChannels.nature.volume = 0.15;
+  audioChannels.nature.play().catch(() => {});
+
+  audioChannels.music.loop = true;
+  audioChannels.music.volume = 0.0;
+  audioChannels.music.play().catch(() => {});
+
+  audioChannels.initialized = true;
+}
+
+function updateAudioMixing(dt) {
+  if (!audioChannels.initialized || audioChannels.muted) return;
+  
+  if (game.state === 'PLAY') {
+    audioChannels.currentMusicTarget = 0.25;
+  } else if (game.state === 'STORY') {
+    audioChannels.currentMusicTarget = 0.02; 
+  } else {
+    audioChannels.currentMusicTarget = 0.0;
+  }
+
+  const fadeSpeed = 0.4; 
+  let v = audioChannels.music.volume;
+  if (v < audioChannels.currentMusicTarget) {
+    v = Math.min(audioChannels.currentMusicTarget, v + fadeSpeed * dt);
+  } else if (v > audioChannels.currentMusicTarget) {
+    v = Math.max(audioChannels.currentMusicTarget, v - fadeSpeed * dt);
+  }
+
+  if (game.audioDamp < 1.0) {
+    game.audioDamp = Math.min(1.0, game.audioDamp + 1.8 * dt);
+  }
+
+  audioChannels.music.volume = v * game.audioDamp;
+}
+
+function toggleMute() {
+  audioChannels.muted = !audioChannels.muted;
+  const masterSwitch = audioChannels.muted ? 0 : 1;
+  audioChannels.nature.volume = 0.15 * masterSwitch;
+  audioChannels.music.volume = (game.state === 'PLAY' ? 0.25 : 0.02) * masterSwitch;
+}
+
+// ---------- cinematic video execution triggers ----------
+const videoElement = document.getElementById('intro-video');
+
+videoElement.addEventListener('ended', () => {
+  startAudio(); 
+  videoElement.style.opacity = '0';
+  setTimeout(() => {
+    videoElement.remove();
+    loadLevel(0);
+  }, 1200);
+});
+
+function skipVideo() {
+  if (game.state === 'INTRO') {
+    startAudio();
+    videoElement.style.opacity = '0';
+    setTimeout(() => {
+      videoElement.remove();
+      loadLevel(0);
+    }, 1200);
+  }
+}
+
 function initAmbientParticles() {
   ambientParticles.length = 0;
-  for (let i = 0; i < 45; i++) {
+  for (let i = 0; i < 40; i++) {
     ambientParticles.push({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
       size: 1 + Math.random() * 2,
-      speedX: -10 - Math.random() * 25,
-      speedY: -5 - Math.random() * 15,
+      speedX: -10 - Math.random() * 20,
+      speedY: -4 - Math.random() * 12,
       alpha: 0.1 + Math.random() * 0.4
     });
   }
@@ -108,68 +181,12 @@ function respawn() {
   cam.zoom = 1.0; cam.targetZoom = 1.0;
 }
 
-// ---------- input ----------
 const keys = { left: false, right: false };
 let jumpHeld = false;
 
-// ---------- ambient audio (Web Audio) ----------
-let audio = null, muted = false;
-function initAudio() {
-  if (audio) return;
-  try {
-    const ac = new (window.AudioContext || window.webkitAudioContext)();
-    const master = ac.createGain();
-    master.gain.value = 0.10;
-    master.connect(ac.destination);
-
-    const lp = ac.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = 320;
-    lp.connect(master);
-
-    [[55, 'sine', 0.5], [55.6, 'sine', 0.5], [110.4, 'triangle', 0.12]].forEach(([f, type, g]) => {
-      const o = ac.createOscillator();
-      o.type = type; o.frequency.value = f;
-      const og = ac.createGain(); og.gain.value = g;
-      o.connect(og); og.connect(lp); o.start();
-    });
-
-    const len = ac.sampleRate * 2;
-    const buf = ac.createBuffer(1, len, ac.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    const noise = ac.createBufferSource();
-    noise.buffer = buf; noise.loop = true;
-    const bp = ac.createBiquadFilter();
-    bp.type = 'bandpass'; bp.frequency.value = 420; bp.Q.value = 0.6;
-    const ng = ac.createGain(); ng.gain.value = 0.05;
-    noise.connect(bp); bp.connect(ng); ng.connect(master); noise.start();
-    
-    const lfo = ac.createOscillator();
-    lfo.frequency.value = 0.06;
-    const lfoG = ac.createGain(); lfoG.gain.value = 180;
-    lfo.connect(lfoG); lfoG.connect(bp.frequency); lfo.start();
-
-    const swell = ac.createOscillator();
-    swell.frequency.value = 0.04;
-    const swellG = ac.createGain(); swellG.gain.value = 0.03;
-    swell.connect(swellG); swellG.connect(master.gain); swell.start();
-
-    audio = { ac, master };
-  } catch (e) { }
-}
-
-function toggleMute() {
-  if (!audio) return;
-  muted = !muted;
-  audio.master.gain.value = muted ? 0 : 0.10;
-}
-
 function anyKeyAdvance() {
-  if (game.state === 'END') {
-    game.deaths = 0;
-    loadLevel(0);
-    return true;
-  }
+  if (game.state === 'INTRO') { skipVideo(); return true; }
+  if (game.state === 'END') { game.deaths = 0; loadLevel(0); return true; }
   if (game.state === 'STORY') {
     if (game.storyLine < game.level.story.length) {
       game.storyLine = game.level.story.length;
@@ -182,7 +199,7 @@ function anyKeyAdvance() {
 }
 
 function setKey(code, down) {
-  if (down) initAudio();
+  if (down) startAudio();
   if (down && anyKeyAdvance()) return;
   if (code === 'KeyM' && down) { toggleMute(); return; }
   if (code === 'ArrowLeft' || code === 'KeyA') keys.left = down;
@@ -203,9 +220,7 @@ function bindBtn(id, code) {
   el.addEventListener('touchstart', e => { setKey(code, true); e.preventDefault(); });
   el.addEventListener('touchend',   e => { setKey(code, false); e.preventDefault(); });
 }
-bindBtn('btnL', 'ArrowLeft');
-bindBtn('btnR', 'ArrowRight');
-bindBtn('btnJ', 'Space');
+bindBtn('btnL', 'ArrowLeft'); bindBtn('btnR', 'ArrowRight'); bindBtn('btnJ', 'Space');
 canvas.addEventListener('touchstart', () => anyKeyAdvance());
 
 function dust(x, y, n, spread = 160) {
@@ -223,8 +238,9 @@ function overlap(ax, ay, aw, ah, bx, by, bw, bh) {
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
 
-// ---------- update ----------
 function update(dt) {
+  updateAudioMixing(dt);
+  if (game.state === 'INTRO') return;
   if (game.state === 'STORY') {
     game.storyTimer += dt;
     const due = Math.floor(game.storyTimer / 1.4);
@@ -234,11 +250,8 @@ function update(dt) {
   if (game.state === 'FADE') {
     game.fade = Math.min(1, game.fade + dt * 1.4);
     if (game.fade >= 1) {
-      if (game.levelIndex + 1 >= LEVELS.length) {
-        game.state = 'END';
-      } else {
-        loadLevel(game.levelIndex + 1);
-      }
+      if (game.levelIndex + 1 >= LEVELS.length) game.state = 'END';
+      else loadLevel(game.levelIndex + 1);
     }
     return;
   }
@@ -247,7 +260,7 @@ function update(dt) {
   const L = game.level;
   const accel = player.grounded ? PHYS.moveAccel : PHYS.airAccel;
   let move = 0;
-  if (keys.left)  move -= 1;
+  if (keys.left) move -= 1;
   if (keys.right) move += 1;
 
   if (move !== 0) {
@@ -266,8 +279,7 @@ function update(dt) {
 
   if (player.buffer > 0 && (player.grounded || player.coyote > 0)) {
     player.vy = PHYS.jumpVel;
-    player.grounded = false;
-    player.coyote = 0; player.buffer = 0;
+    player.grounded = false; player.coyote = 0; player.buffer = 0;
   }
   if (!jumpHeld && player.vy < 0) {
     player.vy *= 1 - (1 - PHYS.jumpCut) * Math.min(1, dt * 14);
@@ -288,13 +300,11 @@ function update(dt) {
   for (const [px, py, pw, ph] of L.platforms) {
     if (overlap(player.x, player.y, player.w, player.h, px, py, pw, ph)) {
       if (player.vy > 0) {
-        player.y = py - player.h;
-        player.grounded = true;
+        player.y = py - player.h; player.grounded = true;
         if (!wasGrounded && player.vy > 500) dust(player.x + player.w / 2, player.y + player.h, 8);
         player.vy = 0;
       } else if (player.vy < 0) {
-        player.y = py + ph;
-        player.vy = 0;
+        player.y = py + ph; player.vy = 0;
       }
     }
   }
@@ -309,21 +319,20 @@ function update(dt) {
 
   for (const [hx, hy, hw, hh] of (L.hazards || [])) {
     if (overlap(player.x, player.y, player.w, player.h, hx, hy - 6, hw, hh + 6)) {
-      game.deaths++;
+      game.deaths++; 
+      game.audioDamp = 0.15; 
       dust(player.x + player.w / 2, player.y + player.h / 2, 16, 240);
-      respawn();
-      return;
+      respawn(); return;
     }
   }
 
-  const e = L.exit;
-  if (overlap(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h)) {
-    game.state = 'FADE';
+  if (overlap(player.x, player.y, player.w, player.h, L.exit.x, L.exit.y, L.exit.w, L.exit.h)) game.state = 'FADE';
+  if (player.y > L.bottom) { 
+    game.deaths++; 
+    game.audioDamp = 0.15; 
+    respawn(); 
   }
 
-  if (player.y > L.bottom) { game.deaths++; respawn(); }
-
-  // animation matrix
   const speed = Math.abs(player.vx);
   if (!player.grounded) {
     player.frame = player.vy < 0 ? SHEET.jump : SHEET.fall;
@@ -331,57 +340,41 @@ function update(dt) {
     player.animTime += dt * (8 + 6 * speed / PHYS.maxSpeed);
     player.frame = Math.floor(player.animTime) % SHEET.runFrames;
   } else {
-    player.frame = SHEET.idle;
-    player.animTime = 0;
+    player.frame = SHEET.idle; player.animTime = 0;
   }
 
-  // --- CALCULATE DYNAMIC CINEMATIC ZOOM (THE GRIS FEEL) ---
-  // If player is on the wide quiet walkway in Chapter 1, zoom way out to show architectural scale
-  if (game.levelIndex === 0 && player.x > 4000 && player.x < 5100) {
-    cam.targetZoom = 0.55; 
-  } else if (game.levelIndex === 1 && player.y < 350) {
-    cam.targetZoom = 0.70; // Zoom out during high precarious platforming jumps
-  } else {
-    cam.targetZoom = 0.90; // Default operational frame visibility
-  }
-  cam.zoom += (cam.targetZoom - cam.zoom) * Math.min(1, dt * 2);
+  if (game.levelIndex === 0 && player.x > 4000 && player.x < 5100) cam.targetZoom = 0.55; 
+  else if (game.levelIndex === 3) cam.targetZoom = 0.50; 
+  else cam.targetZoom = 0.85;
+  
+  cam.zoom += (cam.targetZoom - cam.zoom) * Math.min(1, dt * 2.5);
 
-  // Smooth camera easing tracking
   const look = player.dir * 70;
   cam.x += ((player.x + player.w / 2 + look) - cam.x) * Math.min(1, dt * 4);
   cam.y += ((player.y + player.h / 2 - 20) - cam.y) * Math.min(1, dt * 3);
-  
-  // Confines
   cam.x = Math.max((W / 2) / cam.zoom, Math.min(L.width - (W / 2) / cam.zoom, cam.x));
   cam.y = Math.min(L.bottom - (H / 2) / cam.zoom + 100, cam.y);
 
-  // Update gameplay particles
   for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.t += dt;
+    const p = particles[i]; p.t += dt;
     if (p.t > p.life) { particles.splice(i, 1); continue; }
     p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt;
   }
 
-  // Update atmospheric particles loop
   for (let p of ambientParticles) {
-    p.x += p.speedX * dt;
-    p.y += p.speedY * dt;
-    if (p.x < -20) p.x = W + 20;
-    if (p.y < -20) p.y = H + 20;
+    p.x += p.speedX * dt; p.y += p.speedY * dt;
+    if (p.x < -20) p.x = W + 20; if (p.y < -20) p.y = H + 20;
   }
 }
 
-// ---------- render ----------
 function render() {
+  if (game.state === 'INTRO') return;
+
   if (bg.skyOk) {
     const s = Math.max(W / bg.sky.width, H / bg.sky.height);
-    const sw = bg.sky.width * s, sh = bg.sky.height * s;
-    ctx.drawImage(bg.sky, (W - sw) / 2, (H - sh) / 2, sw, sh);
+    ctx.drawImage(bg.sky, (W - bg.sky.width * s) / 2, (H - bg.sky.height * s) / 2, bg.sky.width * s, bg.sky.height * s);
   } else {
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#16244a'); g.addColorStop(0.55, '#27407a'); g.addColorStop(1, '#3a5fa8');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#0a1228'; ctx.fillRect(0, 0, W, H);
   }
 
   if (game.state === 'STORY') { renderStory(); return; }
@@ -390,35 +383,27 @@ function render() {
   const mood = game.level.mood || { veil: [105,125,148], grade: null, darken: 0 };
   const [vr, vg, vb] = mood.veil;
 
-  // ---- SCIENTIFIC PARALLAX STACK (BOUND TO CAM AXES) ----
   layer(bg.hills, bg.hillsOk, 0.15, 0.60, 1.0);
   ctx.fillStyle = `rgba(${vr}, ${vg}, ${vb}, 0.25)`; ctx.fillRect(0, 0, W, H);
-
   layer(bg.mono, bg.monoOk, 0.35, 0.70, 1.0);
   ctx.fillStyle = `rgba(${vr}, ${vg}, ${vb}, 0.15)`; ctx.fillRect(0, 0, W, H);
-
   layer(bg.ruins, bg.ruinsOk, 0.55, 0.50, 1.0);
   ctx.fillStyle = `rgba(${vr}, ${vg}, ${vb}, 0.06)`; ctx.fillRect(0, 0, W, H);
 
   fogDrift();
   lightShafts();
 
-  // Foreground layers intersecting view line
   layer(bg.shard, bg.shardOk, 0.75, 0.95, 2.8);
   layer(bg.occl, bg.occlOk, 0.85, 1.05, 2.2);
   layer(bg.debris, bg.debrisOk, 1.25, 0.35, 1.5);
 
-  // Render atmospheric dust motes
   ctx.save();
   for (let p of ambientParticles) {
     ctx.fillStyle = `rgba(223, 232, 245, ${p.alpha})`;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
   }
   ctx.restore();
 
-  // --- BEGIN CINEMATIC VIEW TRANSFORM MATRIX ---
   ctx.save();
   ctx.translate(W / 2, H / 2);
   ctx.scale(cam.zoom, cam.zoom);
@@ -426,21 +411,16 @@ function render() {
 
   const L = game.level;
   for (const [px, py, pw, ph] of L.platforms) {
-    ctx.fillStyle = '#060b17';
-    ctx.fillRect(px, py, pw, ph);
-    ctx.fillStyle = 'rgba(157,184,224,0.20)';
-    ctx.fillRect(px, py, pw, 3);
+    ctx.fillStyle = '#060b17'; ctx.fillRect(px, py, pw, ph);
+    ctx.fillStyle = 'rgba(157,184,224,0.20)'; ctx.fillRect(px, py, pw, 3);
   }
 
   for (const [hx, hy, hw, hh] of (L.hazards || [])) {
-    ctx.fillStyle = '#03060d';
-    ctx.fillRect(hx, hy - 4, hw, hh + 4);
+    ctx.fillStyle = '#03060d'; ctx.fillRect(hx, hy - 4, hw, hh + 4);
     const n = Math.floor(hw / 6);
     for (let i = 0; i < n; i++) {
-      const sx = hx + Math.random() * hw;
-      const sy = hy - 4 + Math.random() * (hh + 8);
       ctx.fillStyle = `rgba(210, 220, 235, ${0.2 + Math.random() * 0.55})`;
-      ctx.fillRect(sx, sy, 2, 2);
+      ctx.fillRect(hx + Math.random() * hw, hy - 4 + Math.random() * (hh + 8), 2, 2);
     }
   }
 
@@ -450,28 +430,23 @@ function render() {
     ctx.fillRect(cp.x - 2, cp.y - 20, 4, 100);
   }
 
-  const e = L.exit;
   const pulse = 0.55 + 0.25 * Math.sin(performance.now() / 400);
-  ctx.fillStyle = `rgba(223,232,245,${pulse})`; ctx.fillRect(e.x, e.y, e.w, e.h);
+  ctx.fillStyle = `rgba(223,232,245,${pulse})`; ctx.fillRect(L.exit.x, L.exit.y, L.exit.w, L.exit.h);
 
   ctx.fillStyle = '#9db8e0';
   for (const p of particles) {
-    ctx.globalAlpha = 1 - p.t / p.life;
-    ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    ctx.globalAlpha = 1 - p.t / p.life; ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
   }
   ctx.globalAlpha = 1;
 
   drawPlayer();
   ctx.restore();
-  // --- END CINEMATIC VIEW MATRIX ---
 
   const gm = game.level.mood;
   if (gm && gm.grade) { ctx.fillStyle = gm.grade; ctx.fillRect(0, 0, W, H); }
   if (gm && gm.darken) { ctx.fillStyle = `rgba(4, 6, 14, ${gm.darken})`; ctx.fillRect(0, 0, W, H); }
 
-  ctx.fillStyle = 'rgba(157,184,224,0.4)';
-  ctx.font = '12px Georgia, serif';
-  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(157,184,224,0.4)'; ctx.font = '12px Georgia, serif';
   ctx.fillText(`${game.level.subtitle} — ${game.level.name}`, 14, H - 16);
 
   if (game.state === 'FADE' || game.fade > 0) {
@@ -480,16 +455,15 @@ function render() {
 }
 
 function renderEnd() {
-  ctx.fillStyle = 'rgba(5, 9, 15, 0.95)'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'center'; ctx.fillStyle = '#dfe8f5'; ctx.font = '30px Georgia, serif';
-  ctx.fillText('TO BE CONTINUED', W / 2, H * 0.4);
+  ctx.fillText('CLARITY ACHIEVED', W / 2, H * 0.4);
   ctx.fillStyle = 'rgba(223,232,245,0.75)'; ctx.font = '15px Georgia, serif';
-  const line = game.deaths === 0 ? 'He fell zero times. He suspects this means nothing.' : `He fell ${game.deaths} times. He kept the suit clean anyway.`;
-  ctx.fillText(line, W / 2, H * 0.4 + 40);
+  ctx.fillText(`He fell ${game.deaths} times. His mind is finally clear.`, W / 2, H * 0.4 + 40);
 }
 
 function renderStory() {
-  ctx.fillStyle = 'rgba(5, 9, 15, 0.7)'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H);
   const L = game.level;
   ctx.textAlign = 'center'; ctx.fillStyle = '#9db8e0'; ctx.font = '14px Georgia, serif';
   ctx.fillText(L.subtitle, W / 2, H * 0.32);
@@ -499,24 +473,13 @@ function renderStory() {
   for (let i = 0; i < game.storyLine; i++) ctx.fillText(L.story[i], W / 2, H * 0.5 + i * 30);
 }
 
-// Fixed Parallax rendering equation taking full camera coordinate systems into calculations
 function layer(img, ok, p, hFrac, gap = 1) {
   if (!ok) return;
-  const lh = H * hFrac;
-  const lw = img.width * (lh / img.height);
-  const span = lw * gap;
-  
-  // Track X offset with a stabilizing loop structure
+  const lh = H * hFrac; const lw = img.width * (lh / img.height); const span = lw * gap;
   let xOffset = -((cam.x * p) % span);
   if (xOffset > 0) xOffset -= span;
-  
-  // Calculate relative vertical camera shifts so background tracks jumping
-  const groundZero = H - lh;
-  const targetY = groundZero - (cam.y - 500) * (p * 0.4);
-
-  for (let x = xOffset; x < W; x += span) {
-    ctx.drawImage(img, x, targetY, lw, lh);
-  }
+  const targetY = (H - lh) - (cam.y - 500) * (p * 0.35);
+  for (let x = xOffset; x < W; x += span) ctx.drawImage(img, x, targetY, lw, lh);
 }
 
 function fogDrift() {
@@ -545,19 +508,12 @@ function lightShafts() {
 }
 
 function drawPlayer() {
-  const drawH = 100;
-  const drawW = drawH * SHEET.cw / SHEET.ch;
-  const cx = player.x + player.w / 2;
-  const feetY = player.y + player.h;
-
-  ctx.save();
-  ctx.translate(cx, feetY);
-  ctx.scale(player.dir, 1);
+  const drawH = 100; const drawW = drawH * SHEET.cw / SHEET.ch;
+  const cx = player.x + player.w / 2; const feetY = player.y + player.h;
+  ctx.save(); ctx.translate(cx, feetY); ctx.scale(player.dir, 1);
   if (spriteReady) {
-    ctx.shadowColor = 'rgba(157, 184, 224, 0.45)';
-    ctx.shadowBlur = 12;
-    const yOff = drawH * SHEET.feetPad / SHEET.ch;
-    ctx.drawImage(sprite, player.frame * SHEET.cw, 0, SHEET.cw, SHEET.ch, -drawW / 2, -drawH + yOff, drawW, drawH);
+    ctx.shadowColor = 'rgba(157, 184, 224, 0.45)'; ctx.shadowBlur = 12;
+    ctx.drawImage(sprite, player.frame * SHEET.cw, 0, SHEET.cw, SHEET.ch, -drawW / 2, -drawH + (drawH * SHEET.feetPad / SHEET.ch), drawW, drawH);
   } else {
     ctx.fillStyle = '#05090f'; ctx.fillRect(-player.w / 2, -player.h, player.w, player.h);
   }
@@ -566,12 +522,7 @@ function drawPlayer() {
 
 let last = performance.now();
 function loop(now) {
-  const dt = Math.min((now - last) / 1000, 1 / 30);
-  last = now;
-  update(dt);
-  render();
-  requestAnimationFrame(loop);
+  const dt = Math.min((now - last) / 1000, 1 / 30); last = now;
+  update(dt); render(); requestAnimationFrame(loop);
 }
-
-loadLevel(0);
 requestAnimationFrame(loop);
