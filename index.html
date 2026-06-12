@@ -6,18 +6,32 @@
 <title>Mind in Motion</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; overflow: hidden; background: #0a1228; touch-action: none; }
+  html, body { height: 100%; overflow: hidden; background: #05090f; touch-action: none; }
   canvas { display: block; width: 100vw; height: 100vh; }
+  
+  /* Cinematic Intro Video Overlay */
+  #intro-video {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    z-index: 999;
+    background: #05090f;
+    transition: opacity 1.2s ease-in-out;
+  }
+
   #hud {
     position: fixed; top: 10px; left: 12px; color: #9db8e0; opacity: 0.6;
     font: 12px/1.4 Georgia, serif; letter-spacing: 1px; pointer-events: none;
-    user-select: none;
+    user-select: none; z-index: 5;
   }
   .btn {
     position: fixed; bottom: 24px; width: 64px; height: 64px; border-radius: 50%;
     background: rgba(157,184,224,0.12); border: 1px solid rgba(157,184,224,0.3);
     color: #9db8e0; font-size: 24px; display: none; align-items: center;
-    justify-content: center; user-select: none; -webkit-user-select: none;
+    justify-content: center; user-select: none; -webkit-user-select: none; z-index: 5;
   }
   .btn:active { background: rgba(157,184,224,0.28); }
   #btnL { left: 20px; }
@@ -27,11 +41,15 @@
 </style>
 </head>
 <body>
+
+<video id="intro-video" src="https://res.cloudinary.com/dcjst7sod/video/upload/v1781299675/Story_0_xbmfds.mp4" autoplay playsinline></video>
+
 <canvas id="c"></canvas>
 <div id="hud">ARROWS / WASD &nbsp;·&nbsp; SPACE TO JUMP &nbsp;·&nbsp; R RESTART · M MUTE</div>
 <div class="btn" id="btnL">&#9664;</div>
 <div class="btn" id="btnR">&#9654;</div>
 <div class="btn" id="btnJ">&#9650;</div>
+
 <script src="levels.js"></script>
 <script src="game.js"></script>
 </body>
