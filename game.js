@@ -442,7 +442,7 @@ function update(dt) {
   player.x += player.vx * dt;
   for (let i = 0; i < L.platforms.length; i++) {
     const [px, py, pw, ph] = L.platforms[i];
-    const isPhasing = (game.levelIndex === 2 || game.levelIndex === 3 || game.levelIndex === 5) && (i % 2 === 1);
+    const isPhasing = (game.levelIndex === 2 || game.levelIndex === 3 || game.levelIndex === 5) && (i % 2 === 1) && pw <= 400 && ph <= 60;
     if (isPhasing && (game.phaseTimer % 4 >= 2.5)) continue; 
 
     if (overlap(player.x, player.y, player.w, player.h, px, py, pw, ph)) {
@@ -454,7 +454,7 @@ function update(dt) {
   player.y += player.vy * dt;
   for (let i = 0; i < L.platforms.length; i++) {
     const [px, py, pw, ph] = L.platforms[i];
-    const isPhasing = (game.levelIndex === 2 || game.levelIndex === 3 || game.levelIndex === 5) && (i % 2 === 1);
+    const isPhasing = (game.levelIndex === 2 || game.levelIndex === 3 || game.levelIndex === 5) && (i % 2 === 1) && pw <= 400 && ph <= 60;
     if (isPhasing && (game.phaseTimer % 4 >= 2.5)) continue;
 
     if (overlap(player.x, player.y, player.w, player.h, px, py, pw, ph)) {
@@ -573,7 +573,7 @@ function render() {
   const L = game.level;
   for (let i = 0; i < L.platforms.length; i++) {
     const [px, py, pw, ph] = L.platforms[i];
-    const isPhasing = (game.levelIndex === 2 || game.levelIndex === 3 || game.levelIndex === 5) && (i % 2 === 1);
+    const isPhasing = (game.levelIndex === 2 || game.levelIndex === 3 || game.levelIndex === 5) && (i % 2 === 1) && pw <= 400 && ph <= 60;
     
     ctx.save();
     if (isPhasing) {
