@@ -31,12 +31,12 @@ const bg = {
   ruinsOk: false, debrisOk: false, occlOk: false, shardOk: false
 };
 bg.sky.src = 'bg_sky.jpg';         bg.sky.onload = () => bg.skyOk = true;
-bg.hills.src = 'bg_hills.jpg';     bg.hills.onload = () => bg.hillsOk = true;
-bg.mono.src = 'bg_monoliths.jpg';  bg.mono.onload = () => bg.monoOk = true;
-bg.ruins.src = 'bg_ruins.jpg';     bg.ruins.onload = () => bg.ruinsOk = true;
-bg.debris.src = 'bg_debris.jpg';   bg.debris.onload = () => bg.debrisOk = true;
-bg.occl.src = 'bg_occl_thin.jpg';   bg.occl.onload = () => bg.occlOk = true;
-bg.shard.src = 'bg_occl_shard.jpg'; bg.shard.onload = () => bg.shardOk = true;
+bg.hills.src = 'bg_hills.png';     bg.hills.onload = () => bg.hillsOk = true;
+bg.mono.src = 'bg_monoliths.png';  bg.mono.onload = () => bg.monoOk = true;
+bg.ruins.src = 'bg_ruins.png';     bg.ruins.onload = () => bg.ruinsOk = true;
+bg.debris.src = 'bg_debris.png';   bg.debris.onload = () => bg.debrisOk = true;
+bg.occl.src = 'bg_occl_thin.png';   bg.occl.onload = () => bg.occlOk = true;
+bg.shard.src = 'bg_occl_shard.png'; bg.shard.onload = () => bg.shardOk = true;
 
 // ---------- mechanics matrix ----------
 const PHYS = {
@@ -617,10 +617,162 @@ function render() {
   }
   ctx.globalAlpha = 1;
 
+  // ---------- enemies ----------
   for (let e of enemies) {
-    ctx.save(); ctx.translate(e.x + e.w / 2, e.y + e.h);
-    ctx.fillStyle = e.type === 'stalker' ? '#08040f' : '#030712';
-    
+    ctx.save();
+    ctx.translate(e.x + e.w / 2, e.y + e.h);
     if (e.isAggro) {
-      ctx.fillStyle = 'rgba(235, 95, 95, 0.3)';
+      ctx.fillStyle = 'rgba(235, 95, 95, 0.22)';
       ctx.beginPath();
+      ctx.arc(0, -e.h / 2, e.h * 0.9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = e.type === 'stalker' ? '#08040f' : '#030712';
+    ctx.fillRect(-e.w / 2, -e.h, e.w, e.h);
+    ctx.fillStyle = e.isAggro ? 'rgba(235, 95, 95, 0.9)' : 'rgba(157, 184, 224, 0.45)';
+    ctx.fillRect(e.dir >= 0 ? e.w * 0.08 : -e.w * 0.32, -e.h * 0.78, 5, 5);
+    ctx.restore();
+  }
+
+  drawPlayer();
+  ctx.restore();
+
+  // ---------- per-chapter color grade ----------
+  const gm = game.level.mood;
+  if (gm && gm.grade) { ctx.fillStyle = gm.grade; ctx.fillRect(0, 0, W, H); }
+  if (gm && gm.darken) { ctx.fillStyle = `rgba(4, 6, 14, ${gm.darken})`; ctx.fillRect(0, 0, W, H); }
+
+  ctx.fillStyle = 'rgba(157,184,224,0.5)';
+  ctx.font = '12px Georgia, serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(`${game.level.subtitle} — ${game.level.name}`, 14, H - 16);
+
+  if (game.state === 'FADE' || game.fade > 0) {
+    ctx.fillStyle = `rgba(5, 9, 15, ${game.fade})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+// ---------- overlay screens ----------
+function renderStory() {
+  ctx.fillStyle = 'rgba(5, 9, 15, 0.55)';
+  ctx.fillRect(0, 0, W, H);
+  const L = game.level;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#9db8e0';
+  ctx.font = '14px Georgia, serif';
+  ctx.fillText(L.subtitle, W / 2, H * 0.32);
+  ctx.fillStyle = '#dfe8f5';
+  ctx.font = '34px Georgia, serif';
+  ctx.fillText(L.name, W / 2, H * 0.32 + 44);
+  ctx.font = '16px Georgia, serif';
+  ctx.fillStyle = 'rgba(223,232,245,0.85)';
+  for (let i = 0; i < game.storyLine; i++) {
+    ctx.fillText(L.story[i], W / 2, H * 0.5 + i * 30);
+  }
+  if (game.storyLine >= L.story.length) {
+    ctx.fillStyle = `rgba(157,184,224,${0.4 + 0.3 * Math.sin(performance.now() / 500)})`;
+    ctx.font = '13px Georgia, serif';
+    ctx.fillText('press any key', W / 2, H * 0.78);
+  }
+}
+
+function renderEnd() {
+  ctx.fillStyle = 'rgba(5, 9, 15, 0.92)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#dfe8f5';
+  ctx.font = '30px Georgia, serif';
+  ctx.fillText('THE SKY HAS OPENED UP', W / 2, H * 0.4);
+  ctx.fillStyle = 'rgba(223,232,245,0.75)';
+  ctx.font = '15px Georgia, serif';
+  const line = game.deaths === 0
+    ? 'He fell zero times. He suspects this means nothing.'
+    : `He fell ${game.deaths} time${game.deaths === 1 ? '' : 's'}. He kept the suit clean anyway.`;
+  ctx.fillText(line, W / 2, H * 0.4 + 40);
+  ctx.fillStyle = `rgba(157,184,224,${0.4 + 0.3 * Math.sin(performance.now() / 500)})`;
+  ctx.font = '13px Georgia, serif';
+  ctx.fillText('press any key to run again', W / 2, H * 0.72);
+}
+
+// ---------- background helpers ----------
+function layer(img, ok, p, hFrac, gap = 1) {
+  if (!ok) return;
+  const lh = H * hFrac;
+  const lw = img.width * (lh / img.height);
+  const span = lw * gap;
+  let x = -((cam.x * p) % span);
+  if (x > 0) x -= span;
+  for (; x < W; x += span) {
+    ctx.drawImage(img, x, H - lh, lw, lh);
+  }
+}
+
+function fogDrift() {
+  const t = performance.now() / 1000;
+  for (let i = 0; i < 3; i++) {
+    const fx = ((t * (8 + i * 5) + i * 700) % (W + 800)) - 400;
+    const fy = H * (0.45 + i * 0.16);
+    const r = 260 + i * 90;
+    const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, r);
+    g.addColorStop(0, 'rgba(140, 160, 185, 0.07)');
+    g.addColorStop(1, 'rgba(140, 160, 185, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(fx - r, fy - r, r * 2, r * 2);
+  }
+}
+
+function lightShafts() {
+  const t = performance.now() / 1000;
+  ctx.save();
+  for (let i = 0; i < 2; i++) {
+    const baseX = W * (0.25 + i * 0.45) - (cam.x * 0.1) % W;
+    const a = 0.025 + 0.02 * Math.sin(t * 0.3 + i * 2);
+    ctx.fillStyle = `rgba(220, 230, 245, ${Math.max(0, a)})`;
+    ctx.beginPath();
+    ctx.moveTo(baseX, -20);
+    ctx.lineTo(baseX + 130, -20);
+    ctx.lineTo(baseX + 330, H);
+    ctx.lineTo(baseX + 110, H);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------- player ----------
+function drawPlayer() {
+  const drawH = 100;
+  const drawW = drawH * SHEET.cw / SHEET.ch;
+  const cx = player.x + player.w / 2;
+  const feetY = player.y + player.h;
+
+  ctx.save();
+  ctx.translate(cx, feetY);
+  ctx.scale(player.dir, 1);
+  if (spriteReady) {
+    ctx.shadowColor = 'rgba(157, 184, 224, 0.6)';
+    ctx.shadowBlur = 14;
+    const yOff = drawH * SHEET.feetPad / SHEET.ch;
+    ctx.drawImage(sprite, player.frame * SHEET.cw, 0, SHEET.cw, SHEET.ch,
+      -drawW / 2, -drawH + yOff, drawW, drawH);
+    ctx.shadowBlur = 0;
+  } else {
+    ctx.fillStyle = '#05090f';
+    ctx.fillRect(-player.w / 2, -player.h, player.w, player.h);
+  }
+  ctx.restore();
+}
+
+// ---------- main loop ----------
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, 1 / 30);
+  last = now;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+setupSaveMenu();
+requestAnimationFrame(loop);
