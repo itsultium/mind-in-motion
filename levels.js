@@ -123,7 +123,7 @@ const LEVELS = [
       "It provides weight where there was only emptiness.",
       "He stopped calculating the distance. He accelerated."
     ],
-    width: 7500,
+    width: 7800,
     bottom: 900,
     spawn: { x: 150, y: 500 },
     checkpoints: [
@@ -136,8 +136,8 @@ const LEVELS = [
       [2150, 500, 350, 30],
       [2700, 600, 1800, 300],   
       [4800, 480, 250, 30],
-      [5350, 540, 1800, 360],   
-      [7150, 0, 40, 900]
+      [5350, 540, 2100, 360],   // Extended platform bounds to encompass the exit coordinate
+      [7450, 0, 40, 900]        // Shifted boundary wall cleanly behind the portal path
     ],
     hazards: [
       [700,  592, 500, 8],
@@ -163,7 +163,7 @@ const LEVELS = [
     checkpoints: [
       { x: 4400, y: 800 }
     ],
-    exit: { x: 8650, y: 700, w: 40, h: 120 },
+    exit: { x: 8500, y: 700, w: 40, h: 120 }, // Shifted back away from the wall plane to prevent overlapping
     platforms: [
       [0,    800, 900, 400],
       [1300, 900, 500, 40],
