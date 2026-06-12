@@ -1,5 +1,5 @@
 // ============================================================
-// MIND IN MOTION — game.js (Cinematic Mechanics Pro Edition)
+// MIND IN MOTION — game.js (Cinematic Mechanics Pro Edition v2)
 // States: INTRO -> STORY -> PLAY -> FADE -> next STORY
 // ============================================================
 
@@ -38,14 +38,14 @@ bg.debris.src = 'bg_debris.jpg';   bg.debris.onload = () => bg.debrisOk = true;
 bg.occl.src = 'bg_occl_thin.jpg';   bg.occl.onload = () => bg.occlOk = true;
 bg.shard.src = 'bg_occl_shard.jpg'; bg.shard.onload = () => bg.shardOk = true;
 
-// ---------- buffed physics tuning Matrix ----------
+// ---------- physics settings matrix ----------
 const PHYS = {
-  gravity: 2100,       // Slightly lower gravity for premium air-time float
+  gravity: 2150,       
   moveAccel: 3000, 
-  airAccel: 2600,      // Heavily buffed horizontal control while airborne
+  airAccel: 2700,      
   friction: 2200,
-  maxSpeed: 460,       // Higher terminal speed to carry momentum across canyons
-  jumpVel: -920,       // Deeper upward liftoff push
+  maxSpeed: 470,       
+  jumpVel: -930,       
   jumpCut: 0.45,
   coyoteTime: 0.12, 
   jumpBuffer: 0.15, 
@@ -69,7 +69,7 @@ const player = {
   x: 0, y: 0, vx: 0, vy: 0, w: 34, h: 80,
   dir: 1, grounded: false, coyote: 0, buffer: 0,
   animTime: 0, frame: SHEET.idle,
-  jumpsLeft: 2,        // Multi-jump state registers
+  jumpsLeft: 2,        
   stepTimer: 0             
 };
 
@@ -78,7 +78,7 @@ const particles = [];
 const ambientParticles = [];
 const enemies = [];        
 
-// ---------- programmatic web audio system (zero files required) ----------
+// ---------- programmatic web audio system ----------
 const audioChannels = {
   ctx: null,
   nature: new Audio('nature.mp3'),
@@ -90,8 +90,6 @@ const audioChannels = {
 
 function startAudio() {
   if (audioChannels.initialized) return;
-  
-  // Launch the dynamic synthesized context matrix
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   audioChannels.ctx = new AudioCtx();
 
@@ -106,58 +104,52 @@ function startAudio() {
   audioChannels.initialized = true;
 }
 
-// Procedural Synth SFX Matrix Generation
 function synthSFX(type) {
   if (!audioChannels.initialized || audioChannels.muted || !audioChannels.ctx) return;
-  
   const ctxNode = audioChannels.ctx;
   const now = ctxNode.currentTime;
 
   if (type === 'jump') {
-    // Generate a beautiful crystalline echoing chime chime
     const osc = ctxNode.createOscillator();
     const gain = ctxNode.createGain();
-    
     osc.type = 'sine';
-    // Frequency sweep upwards for an ethereal lift
     osc.frequency.setValueAtTime(280, now);
     osc.frequency.exponentialRampToValueAtTime(520, now + 0.12);
-    
-    gain.gain.setValueAtTime(0.14, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-    
-    osc.connect(gain);
-    gain.connect(ctxNode.destination);
-    osc.start(now);
-    osc.stop(now + 0.46);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    osc.connect(gain); gain.connect(ctxNode.destination);
+    osc.start(now); osc.stop(now + 0.41);
   }
-  
   if (type === 'step') {
-    // Soft, low acoustic damp thud sound effect for walking on soft stone
     const osc = ctxNode.createOscillator();
     const gain = ctxNode.createGain();
     const filter = ctxNode.createBiquadFilter();
-    
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(75, now);
-    
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(120, now);
-    
-    gain.gain.setValueAtTime(0.06, now);
+    filter.type = 'lowpass'; filter.frequency.setValueAtTime(120, now);
+    gain.gain.setValueAtTime(0.05, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-    
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctxNode.destination);
-    osc.start(now);
-    osc.stop(now + 0.09);
+    osc.connect(filter); filter.connect(gain); gain.connect(ctxNode.destination);
+    osc.start(now); osc.stop(now + 0.09);
+  }
+  if (type === 'spring') {
+    // Elegant, soaring low-to-high frequency launch sweeping chord
+    const osc1 = ctxNode.createOscillator();
+    const osc2 = ctxNode.createOscillator();
+    const gain = ctxNode.createGain();
+    osc1.type = 'sine'; osc1.frequency.setValueAtTime(180, now);
+    osc1.frequency.exponentialRampToValueAtTime(650, now + 0.3);
+    osc2.type = 'triangle'; osc2.frequency.setValueAtTime(220, now);
+    osc2.frequency.exponentialRampToValueAtTime(880, now + 0.25);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    osc1.connect(gain); osc2.connect(gain); gain.connect(ctxNode.destination);
+    osc1.start(now); osc2.start(now); osc1.stop(now + 0.6); osc2.stop(now + 0.6);
   }
 }
 
 function updateAudioMixing(dt) {
   if (!audioChannels.initialized || audioChannels.muted) return;
-  
   if (game.state === 'PLAY') {
     audioChannels.currentMusicTarget = 0.25;
   } else if (game.state === 'STORY') {
@@ -165,19 +157,11 @@ function updateAudioMixing(dt) {
   } else {
     audioChannels.currentMusicTarget = 0.0;
   }
-
   const fadeSpeed = 0.4; 
   let v = audioChannels.music.volume;
-  if (v < audioChannels.currentMusicTarget) {
-    v = Math.min(audioChannels.currentMusicTarget, v + fadeSpeed * dt);
-  } else if (v > audioChannels.currentMusicTarget) {
-    v = Math.max(audioChannels.currentMusicTarget, v - fadeSpeed * dt);
-  }
-
-  if (game.audioDamp < 1.0) {
-    game.audioDamp = Math.min(1.0, game.audioDamp + 1.8 * dt);
-  }
-
+  if (v < audioChannels.currentMusicTarget) v = Math.min(audioChannels.currentMusicTarget, v + fadeSpeed * dt);
+  else if (v > audioChannels.currentMusicTarget) v = Math.max(audioChannels.currentMusicTarget, v - fadeSpeed * dt);
+  if (game.audioDamp < 1.0) game.audioDamp = Math.min(1.0, game.audioDamp + 1.8 * dt);
   audioChannels.music.volume = v * game.audioDamp;
 }
 
@@ -188,7 +172,7 @@ function toggleMute() {
   audioChannels.music.volume = (game.state === 'PLAY' ? 0.25 : 0.02) * masterSwitch;
 }
 
-// ---------- interactive handshake handler ----------
+// ---------- interactive UI handlers ----------
 const gatekeeper = document.getElementById('gatekeeper');
 const videoElement = document.getElementById('intro-video');
 
@@ -199,9 +183,8 @@ if (gatekeeper) {
     startAudio();
     if (videoElement) {
       videoElement.play().catch(e => {
-        console.log("Muted safety protocol run:", e);
         videoElement.muted = true;
-        videoElement.play().catch(err => console.log("Critical execution exception:", err));
+        videoElement.play().catch(err => console.log(err));
       });
     }
   });
@@ -229,17 +212,11 @@ function skipVideo() {
 
 function initLevelEnemies() {
   enemies.length = 0;
-  if (game.levelIndex === 0) {
-    enemies.push({ x: 3100, y: 640 - 50, minX: 2880, maxX: 3450, speed: 90, dir: 1, w: 26, h: 50 });
-    enemies.push({ x: 4300, y: 400 - 50, minX: 4200, maxX: 4900, speed: 110, dir: -1, w: 26, h: 50 });
-    enemies.push({ x: 6400, y: 640 - 50, minX: 6150, maxX: 6900, speed: 100, dir: 1, w: 26, h: 50 });
-  } else if (game.levelIndex === 1) {
-    enemies.push({ x: 5000, y: 300 - 50, minX: 4980, maxX: 5300, speed: 80, dir: 1, w: 26, h: 50 });
-    enemies.push({ x: 7800, y: 240 - 50, minX: 7650, maxX: 8200, speed: 130, dir: -1, w: 26, h: 50 });
-  } else if (game.levelIndex === 2) {
-    enemies.push({ x: 3200, y: 600 - 50, minX: 2900, maxX: 4200, speed: 150, dir: 1, w: 26, h: 50 });
-  } else if (game.levelIndex === 3) {
-    enemies.push({ x: 3800, y: 650 - 50, minX: 3200, maxX: 4800, speed: 120, dir: 1, w: 26, h: 50 });
+  const L = game.level;
+  if (!L || !L.enemies) return;
+  // Deep copies level enemy structures into dynamic execution instances
+  for (const e of L.enemies) {
+    enemies.push({ ...e });
   }
 }
 
@@ -277,6 +254,7 @@ function respawn() {
   player.jumpsLeft = 2; 
   cam.x = player.x; cam.y = player.y;
   cam.zoom = 1.0; cam.targetZoom = 1.0;
+  initLevelEnemies(); // Resets ninja positioning maps on death
 }
 
 const keys = { left: false, right: false };
@@ -354,21 +332,49 @@ function update(dt) {
   }
   if (game.state === 'END') return;
 
-  for (let e of enemies) {
-    e.x += e.speed * e.dir * dt;
-    if (e.x < e.minX) { e.x = e.minX; e.dir = 1; }
-    if (e.x > e.maxX) { e.x = e.maxX; e.dir = -1; }
+  const L = game.level;
 
-    if (overlap(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h)) {
-      game.deaths++;
-      game.audioDamp = 0.15;
-      dust(player.x + player.w / 2, player.y + player.h / 2, 20, 260);
-      respawn();
-      return;
+  // --- DYNAMIC SEALS / SPRING PLATFORMS PROCESSING ---
+  for (const [sx, sy, sw, sh, spower] of (L.springs || [])) {
+    if (overlap(player.x, player.y, player.w, player.h, sx, sy, sw, sh)) {
+      player.vy = -spower;
+      player.grounded = false;
+      player.jumpsLeft = 2; // Full horizontal and airborne replenish
+      synthSFX('spring');
+      dust(player.x + player.w / 2, player.y + player.h, 24, 280);
     }
   }
 
-  const L = game.level;
+  // --- ENEMY AI LIEFECYCLE ENGINE (Patrols & Tracking Stalkers) ---
+  for (let e of enemies) {
+    if (e.type === 'stalker') {
+      const xDist = player.x - e.x;
+      const yDist = Math.abs(player.y - e.y);
+      // Aggro boundary scanning window
+      if (Math.abs(xDist) < 550 && yDist < 160) {
+        e.dir = Math.sign(xDist);
+        e.x += e.speed * 1.8 * e.dir * dt; // Rushes with high alert multiplier
+        e.isAggro = true;
+      } else {
+        e.isAggro = false;
+        e.x += e.speed * e.dir * dt;
+        if (e.x < e.minX) { e.x = e.minX; e.dir = 1; }
+        if (e.x > e.maxX) { e.x = e.maxX; e.dir = -1; }
+      }
+    } else {
+      // Basic aesthetic linear pacing shadow
+      e.x += e.speed * e.dir * dt;
+      if (e.x < e.minX) { e.x = e.minX; e.dir = 1; }
+      if (e.x > e.maxX) { e.x = e.maxX; e.dir = -1; }
+    }
+
+    if (overlap(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h)) {
+      game.deaths++; game.audioDamp = 0.15;
+      dust(player.x + player.w / 2, player.y + player.h / 2, 20, 260);
+      respawn(); return;
+    }
+  }
+
   const accel = player.grounded ? PHYS.moveAccel : PHYS.airAccel;
   let move = 0;
   if (keys.left) move -= 1;
@@ -388,7 +394,6 @@ function update(dt) {
   player.coyote = Math.max(0, player.coyote - dt);
   player.buffer = Math.max(0, player.buffer - dt);
 
-  // --- FAULT-TOLERANT DOUBLE JUMP MECHANIC LOOP ---
   if (player.buffer > 0) {
     if (player.grounded || player.coyote > 0) {
       player.vy = PHYS.jumpVel;
@@ -398,8 +403,7 @@ function update(dt) {
       dust(player.x + player.w / 2, player.y + player.h, 8);
     } else if (player.jumpsLeft > 0) {
       player.vy = PHYS.jumpVel * 0.95; 
-      player.buffer = 0;
-      player.jumpsLeft = 0; 
+      player.buffer = 0; player.jumpsLeft = 0; 
       synthSFX('jump');
       dust(player.x + player.w / 2, player.y + player.h / 2, 14, 220);
     }
@@ -444,27 +448,19 @@ function update(dt) {
 
   for (const [hx, hy, hw, hh] of (L.hazards || [])) {
     if (overlap(player.x, player.y, player.w, player.h, hx, hy - 6, hw, hh + 6)) {
-      game.deaths++; 
-      game.audioDamp = 0.15; 
+      game.deaths++; game.audioDamp = 0.15;
       dust(player.x + player.w / 2, player.y + player.h / 2, 16, 240);
       respawn(); return;
     }
   }
 
   if (overlap(player.x, player.y, player.w, player.h, L.exit.x, L.exit.y, L.exit.w, L.exit.h)) game.state = 'FADE';
-  if (player.y > L.bottom) { 
-    game.deaths++; 
-    game.audioDamp = 0.15; 
-    respawn(); 
-  }
+  if (player.y > L.bottom) { game.deaths++; game.audioDamp = 0.15; respawn(); }
 
   const speed = Math.abs(player.vx);
   if (player.grounded && speed > 30) {
     player.stepTimer += dt * (speed / PHYS.maxSpeed);
-    if (player.stepTimer > 0.34) { 
-      synthSFX('step');
-      player.stepTimer = 0;
-    }
+    if (player.stepTimer > 0.34) { synthSFX('step'); player.stepTimer = 0; }
   }
 
   if (!player.grounded) {
@@ -477,7 +473,7 @@ function update(dt) {
   }
 
   if (game.levelIndex === 0 && player.x > 4000 && player.x < 5100) cam.targetZoom = 0.55; 
-  else if (game.levelIndex === 3) cam.targetZoom = 0.50; 
+  else if (game.levelIndex === 3 || game.levelIndex === 5) cam.targetZoom = 0.50; 
   else cam.targetZoom = 0.85;
   
   cam.zoom += (cam.targetZoom - cam.zoom) * Math.min(1, dt * 2.5);
@@ -548,6 +544,12 @@ function render() {
     ctx.fillStyle = 'rgba(157,184,224,0.20)'; ctx.fillRect(px, py, pw, 3);
   }
 
+  // Draw Springs / Kinetic Seals
+  for (const [sx, sy, sw, sh] of (L.springs || [])) {
+    ctx.fillStyle = '#15243f'; ctx.fillRect(sx, sy, sw, sh);
+    ctx.fillStyle = 'rgba(223, 232, 245, 0.6)'; ctx.fillRect(sx, sy, sw, 2);
+  }
+
   for (const [hx, hy, hw, hh] of (L.hazards || [])) {
     ctx.fillStyle = '#03060d'; ctx.fillRect(hx, hy - 4, hw, hh + 4);
     const n = Math.floor(hw / 6);
@@ -572,20 +574,23 @@ function render() {
   }
   ctx.globalAlpha = 1;
 
+  // --- RENDERING THREAT ENTITIES ---
   for (let e of enemies) {
     ctx.save();
     ctx.translate(e.x + e.w / 2, e.y + e.h);
-    const aura = 8 + 4 * Math.sin(performance.now() / 180);
-    ctx.shadowColor = 'rgba(223, 232, 245, 0.4)';
-    ctx.shadowBlur = aura;
-    ctx.fillStyle = '#030712';
+    // Red aura indicators if ninja stalker detects player coordinates
+    if (e.isAggro) {
+      ctx.shadowColor = 'rgba(235, 95, 95, 0.75)';
+      ctx.shadowBlur = 14 + 6 * Math.sin(performance.now() / 90);
+    } else {
+      ctx.shadowColor = 'rgba(223, 232, 245, 0.3)';
+      ctx.shadowBlur = 8;
+    }
+    ctx.fillStyle = e.type === 'stalker' ? '#08040f' : '#030712';
     ctx.beginPath();
-    ctx.moveTo(-e.w/2, 0);
-    ctx.lineTo(-e.w/4, -e.h);
-    ctx.lineTo(e.w/4, -e.h);
-    ctx.lineTo(e.w/2, 0);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(-e.w/2, 0); ctx.lineTo(-e.w/3, -e.h);
+    ctx.lineTo(e.w/3, -e.h); ctx.lineTo(e.w/2, 0);
+    ctx.closePath(); ctx.fill();
     ctx.restore();
   }
 
