@@ -1,5 +1,5 @@
 // ============================================================
-// MIND IN MOTION — game.js (Cinematic & Mechanics Edition)
+// MIND IN MOTION — game.js (Cinematic Mechanics Pro Edition)
 // States: INTRO -> STORY -> PLAY -> FADE -> next STORY
 // ============================================================
 
@@ -38,11 +38,18 @@ bg.debris.src = 'bg_debris.jpg';   bg.debris.onload = () => bg.debrisOk = true;
 bg.occl.src = 'bg_occl_thin.jpg';   bg.occl.onload = () => bg.occlOk = true;
 bg.shard.src = 'bg_occl_shard.jpg'; bg.shard.onload = () => bg.shardOk = true;
 
-// ---------- physics ----------
+// ---------- buffed physics tuning Matrix ----------
 const PHYS = {
-  gravity: 2300, moveAccel: 2800, airAccel: 1800, friction: 2200,
-  maxSpeed: 380, jumpVel: -800, jumpCut: 0.45,
-  coyoteTime: 0.10, jumpBuffer: 0.12, maxFall: 1100
+  gravity: 2100,       // Slightly lower gravity for premium air-time float
+  moveAccel: 3000, 
+  airAccel: 2600,      // Heavily buffed horizontal control while airborne
+  friction: 2200,
+  maxSpeed: 460,       // Higher terminal speed to carry momentum across canyons
+  jumpVel: -920,       // Deeper upward liftoff push
+  jumpCut: 0.45,
+  coyoteTime: 0.12, 
+  jumpBuffer: 0.15, 
+  maxFall: 1100
 };
 
 // ---------- game state ----------
@@ -62,21 +69,20 @@ const player = {
   x: 0, y: 0, vx: 0, vy: 0, w: 34, h: 80,
   dir: 1, grounded: false, coyote: 0, buffer: 0,
   animTime: 0, frame: SHEET.idle,
-  jumpsLeft: 2,            // Double Jump Core State
-  stepTimer: 0             // Footstep cadence tracker
+  jumpsLeft: 2,        // Multi-jump state registers
+  stepTimer: 0             
 };
 
 const cam = { x: 0, y: 0, zoom: 1.0, targetZoom: 1.0 };
 const particles = [];
 const ambientParticles = [];
-const enemies = [];        // Dynamic enemy ecosystem array
+const enemies = [];        
 
-// ---------- dual-channel audio + sfx mixer system ----------
+// ---------- programmatic web audio system (zero files required) ----------
 const audioChannels = {
+  ctx: null,
   nature: new Audio('nature.mp3'),
   music: new Audio('https://res.cloudinary.com/dcjst7sod/video/upload/v1781299773/Background_music_of_gameplay_uutorc.mp3'),
-  sfxJump: new Audio('sfx_jump.mp3'),
-  sfxStep: new Audio('sfx_step.mp3'),
   initialized: false,
   muted: false,
   currentMusicTarget: 0.0
@@ -85,6 +91,10 @@ const audioChannels = {
 function startAudio() {
   if (audioChannels.initialized) return;
   
+  // Launch the dynamic synthesized context matrix
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  audioChannels.ctx = new AudioCtx();
+
   audioChannels.nature.loop = true;
   audioChannels.nature.volume = 0.15;
   audioChannels.nature.play().catch(() => {});
@@ -96,17 +106,52 @@ function startAudio() {
   audioChannels.initialized = true;
 }
 
-function playSFX(type) {
-  if (!audioChannels.initialized || audioChannels.muted) return;
+// Procedural Synth SFX Matrix Generation
+function synthSFX(type) {
+  if (!audioChannels.initialized || audioChannels.muted || !audioChannels.ctx) return;
+  
+  const ctxNode = audioChannels.ctx;
+  const now = ctxNode.currentTime;
+
   if (type === 'jump') {
-    audioChannels.sfxJump.currentTime = 0;
-    audioChannels.sfxJump.volume = 0.18;
-    audioChannels.sfxJump.play().catch(() => {});
+    // Generate a beautiful crystalline echoing chime chime
+    const osc = ctxNode.createOscillator();
+    const gain = ctxNode.createGain();
+    
+    osc.type = 'sine';
+    // Frequency sweep upwards for an ethereal lift
+    osc.frequency.setValueAtTime(280, now);
+    osc.frequency.exponentialRampToValueAtTime(520, now + 0.12);
+    
+    gain.gain.setValueAtTime(0.14, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    
+    osc.connect(gain);
+    gain.connect(ctxNode.destination);
+    osc.start(now);
+    osc.stop(now + 0.46);
   }
+  
   if (type === 'step') {
-    audioChannels.sfxStep.currentTime = 0;
-    audioChannels.sfxStep.volume = 0.08;
-    audioChannels.sfxStep.play().catch(() => {});
+    // Soft, low acoustic damp thud sound effect for walking on soft stone
+    const osc = ctxNode.createOscillator();
+    const gain = ctxNode.createGain();
+    const filter = ctxNode.createBiquadFilter();
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(75, now);
+    
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(120, now);
+    
+    gain.gain.setValueAtTime(0.06, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctxNode.destination);
+    osc.start(now);
+    osc.stop(now + 0.09);
   }
 }
 
@@ -154,9 +199,9 @@ if (gatekeeper) {
     startAudio();
     if (videoElement) {
       videoElement.play().catch(e => {
-        console.log("Audio block active, running low-power protocol:", e);
+        console.log("Muted safety protocol run:", e);
         videoElement.muted = true;
-        videoElement.play().catch(err => console.log("Critical execution lock:", err));
+        videoElement.play().catch(err => console.log("Critical execution exception:", err));
       });
     }
   });
@@ -182,10 +227,8 @@ function skipVideo() {
   }
 }
 
-// ---------- enemy procedural injection system ----------
 function initLevelEnemies() {
   enemies.length = 0;
-  // Places echo shadows perfectly on your defined structural platforms
   if (game.levelIndex === 0) {
     enemies.push({ x: 3100, y: 640 - 50, minX: 2880, maxX: 3450, speed: 90, dir: 1, w: 26, h: 50 });
     enemies.push({ x: 4300, y: 400 - 50, minX: 4200, maxX: 4900, speed: 110, dir: -1, w: 26, h: 50 });
@@ -311,13 +354,11 @@ function update(dt) {
   }
   if (game.state === 'END') return;
 
-  // --- ENEMY LIFECYCLE ENGINE ---
   for (let e of enemies) {
     e.x += e.speed * e.dir * dt;
     if (e.x < e.minX) { e.x = e.minX; e.dir = 1; }
     if (e.x > e.maxX) { e.x = e.maxX; e.dir = -1; }
 
-    // Intersect evaluation against player coordinates
     if (overlap(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h)) {
       game.deaths++;
       game.audioDamp = 0.15;
@@ -347,21 +388,19 @@ function update(dt) {
   player.coyote = Math.max(0, player.coyote - dt);
   player.buffer = Math.max(0, player.buffer - dt);
 
-  // --- DOUBLE JUMP EXECUTION LOOP ---
+  // --- FAULT-TOLERANT DOUBLE JUMP MECHANIC LOOP ---
   if (player.buffer > 0) {
     if (player.grounded || player.coyote > 0) {
       player.vy = PHYS.jumpVel;
       player.grounded = false; player.coyote = 0; player.buffer = 0;
       player.jumpsLeft = 1; 
-      playSFX('jump');
+      synthSFX('jump');
       dust(player.x + player.w / 2, player.y + player.h, 8);
     } else if (player.jumpsLeft > 0) {
-      // Air roll jump execution
       player.vy = PHYS.jumpVel * 0.95; 
       player.buffer = 0;
       player.jumpsLeft = 0; 
-      playSFX('jump');
-      // Visual feedback paint explosion puff
+      synthSFX('jump');
       dust(player.x + player.w / 2, player.y + player.h / 2, 14, 220);
     }
   }
@@ -386,7 +425,7 @@ function update(dt) {
     if (overlap(player.x, player.y, player.w, player.h, px, py, pw, ph)) {
       if (player.vy > 0) {
         player.y = py - player.h; player.grounded = true;
-        player.jumpsLeft = 2; // Full grounding replenish trigger
+        player.jumpsLeft = 2; 
         if (!wasGrounded && player.vy > 500) dust(player.x + player.w / 2, player.y + player.h, 8);
         player.vy = 0;
       } else if (player.vy < 0) {
@@ -419,12 +458,11 @@ function update(dt) {
     respawn(); 
   }
 
-  // --- DYNAMIC FOOTSTEP TICK GENERATOR ---
   const speed = Math.abs(player.vx);
   if (player.grounded && speed > 30) {
     player.stepTimer += dt * (speed / PHYS.maxSpeed);
-    if (player.stepTimer > 0.32) { // Play stride audio clip loop sequentially
-      playSFX('step');
+    if (player.stepTimer > 0.34) { 
+      synthSFX('step');
       player.stepTimer = 0;
     }
   }
@@ -534,17 +572,12 @@ function render() {
   }
   ctx.globalAlpha = 1;
 
-  // --- RENDER ENEMIES (MELANCHOLY ECHOES) ---
   for (let e of enemies) {
     ctx.save();
     ctx.translate(e.x + e.w / 2, e.y + e.h);
-    
-    // Ghostly neon canvas pulse outline
     const aura = 8 + 4 * Math.sin(performance.now() / 180);
     ctx.shadowColor = 'rgba(223, 232, 245, 0.4)';
     ctx.shadowBlur = aura;
-
-    // Body silhouette style matching the environment tone
     ctx.fillStyle = '#030712';
     ctx.beginPath();
     ctx.moveTo(-e.w/2, 0);
