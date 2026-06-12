@@ -1,5 +1,5 @@
 // ============================================================
-// MIND IN MOTION — game.js (Performance & Controls Restored)
+// MIND IN MOTION — game.js (Polished Atmospheric Release Engine)
 // States: MENU -> INTRO -> STORY -> PLAY -> FADE -> next STORY
 // ============================================================
 
@@ -38,6 +38,15 @@ bg.debris.src = 'bg_debris.png';   bg.debris.onload = () => bg.debrisOk = true;
 bg.occl.src = 'bg_occl_thin.png';   bg.occl.onload = () => bg.occlOk = true;
 bg.shard.src = 'bg_occl_shard.png'; bg.shard.onload = () => bg.shardOk = true;
 
+// ---------- chapter illustration preloader (Item 2) ----------
+const cardImages = [];
+const cardImagesOk = Array(7).fill(false);
+for (let i = 0; i < 7; i++) {
+  cardImages[i] = new Image();
+  cardImages[i].src = `chapter_${i}.jpg`;
+  cardImages[i].onload = () => { cardImagesOk[i] = true; };
+}
+
 // ---------- mechanics matrix ----------
 const PHYS = {
   gravity: 2150, moveAccel: 3000, airAccel: 2700, friction: 2200,
@@ -66,7 +75,12 @@ const player = {
   dir: 1, grounded: false, coyote: 0, buffer: 0,
   animTime: 0, frame: SHEET.idle,
   jumpsLeft: 2,        
-  stepTimer: 0             
+  stepTimer: 0,
+  // Juice Architecture
+  isDying: false,
+  deathTimer: 0,
+  squashX: 1,
+  squashY: 1
 };
 
 const cam = { x: 0, y: 0, zoom: 1.0, targetZoom: 1.0 };
@@ -141,12 +155,25 @@ function synthSFX(type) {
     osc1.connect(gain); osc2.connect(gain); gain.connect(ctxNode.destination);
     osc1.start(now); osc2.start(now); osc1.stop(now + 0.6); osc2.stop(now + 0.6);
   }
+  if (type === 'checkpoint') {
+    const osc1 = ctxNode.createOscillator();
+    const osc2 = ctxNode.createOscillator();
+    const gain = ctxNode.createGain();
+    osc1.type = 'sine'; osc1.frequency.setValueAtTime(580, now);
+    osc1.frequency.exponentialRampToValueAtTime(880, now + 0.2);
+    osc2.type = 'sine'; osc2.frequency.setValueAtTime(700, now);
+    osc2.frequency.exponentialRampToValueAtTime(1150, now + 0.35);
+    gain.gain.setValueAtTime(0.06, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc1.connect(gain); osc2.connect(gain); gain.connect(ctxNode.destination);
+    osc1.start(now); osc2.start(now); osc1.stop(now + 0.5); osc2.stop(now + 0.5);
+  }
 }
 
 function updateAudioMixing(dt) {
   if (!audioChannels.initialized || audioChannels.muted) return;
   if (game.state === 'PLAY') {
-    audioChannels.currentMusicTarget = 0.25;
+    audioChannels.currentMusicTarget = (game.levelIndex === 6 && player.x > 4200) ? 0.45 : 0.25; // Music swells at Finale
   } else if (game.state === 'STORY') {
     audioChannels.currentMusicTarget = 0.02; 
   } else {
@@ -167,7 +194,7 @@ function toggleMute() {
   audioChannels.music.volume = (game.state === 'PLAY' ? 0.25 : 0.02) * masterSwitch;
 }
 
-// ---------- interactive menu select & cache save system ----------
+// ---------- save & stage select infrastructure ----------
 const gatekeeper = document.getElementById('gatekeeper');
 const videoElement = document.getElementById('intro-video');
 const newJourneyBtn = document.getElementById('menu-new-btn');
@@ -285,6 +312,7 @@ function loadLevel(i) {
 }
 
 function respawn() {
+  player.isDying = false;
   player.x = game.checkpoint.x;
   player.y = game.checkpoint.y;
   player.vx = 0; player.vy = 0;
@@ -292,6 +320,27 @@ function respawn() {
   cam.x = player.x; cam.y = player.y;
   cam.zoom = 1.0; cam.targetZoom = 1.0;
   initLevelEnemies(); 
+}
+
+function triggerDeath() {
+  if (player.isDying) return;
+  player.isDying = true;
+  player.deathTimer = 0.75; // Time allocation for static particle dissolve
+  game.deaths++;
+  game.audioDamp = 0.15;
+  
+  // Dissolve particle generation (Item 1)
+  for (let i = 0; i < 40; i++) {
+    particles.push({
+      x: player.x + Math.random() * player.w,
+      y: player.y + Math.random() * player.h,
+      vx: (Math.random() - 0.5) * 220,
+      vy: (Math.random() - 0.6) * 190,
+      life: 0.4 + Math.random() * 0.3,
+      t: 0,
+      isStatic: true
+    });
+  }
 }
 
 const keys = { left: false, right: false };
@@ -312,7 +361,7 @@ function anyKeyAdvance() {
 }
 
 function setKey(code, down) {
-  if (game.state === 'MENU') return;
+  if (game.state === 'MENU' || player.isDying) return;
   if (down && anyKeyAdvance()) return;
   if (code === 'KeyM' && down) { toggleMute(); return; }
   if (code === 'ArrowLeft' || code === 'KeyA') keys.left = down;
@@ -321,11 +370,11 @@ function setKey(code, down) {
     if (down && !jumpHeld) player.buffer = PHYS.jumpBuffer;
     jumpHeld = down;
   }
-  if (code === 'KeyR' && down && game.state === 'PLAY') { game.deaths++; respawn(); }
+  if (code === 'KeyR' && down && game.state === 'PLAY') { triggerDeath(); }
 }
 
 window.addEventListener('keydown', e => { setKey(e.code, true); e.preventDefault(); });
-window.addEventListener('keyup',   e => setKey(e.code, false)); // FIXED: Changed "code" to "e.code"
+window.addEventListener('keyup',   e => setKey(e.code, false));
 
 function bindBtn(id, code) {
   const el = document.getElementById(id);
@@ -342,7 +391,8 @@ function dust(x, y, n, spread = 160) {
       x, y,
       vx: (Math.random() - 0.5) * spread,
       vy: -Math.random() * 90,
-      life: 0.4 + Math.random() * 0.3, t: 0
+      life: 0.4 + Math.random() * 0.3, t: 0,
+      isStatic: false
     });
   }
 }
@@ -370,6 +420,23 @@ function update(dt) {
   }
   if (game.state === 'END') return;
 
+  // Easing Squash and Stretch calculations (Item 1)
+  player.squashX += (1 - player.squashX) * 10 * dt;
+  player.squashY += (1 - player.squashY) * 10 * dt;
+
+  // Death phase countdown logic
+  if (player.isDying) {
+    player.deathTimer -= dt;
+    if (player.deathTimer <= 0) respawn();
+    // Advance death particles inside countdown
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i]; p.t += dt;
+      if (p.t > p.life) { particles.splice(i, 1); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+    }
+    return;
+  }
+
   game.phaseTimer += dt;
   if (player.x > 550) game.targetBloom = 1.0;
   game.bloom += (game.targetBloom - game.bloom) * 1.8 * dt;
@@ -380,6 +447,7 @@ function update(dt) {
     if (overlap(player.x, player.y, player.w, player.h, sx, sy, sw, sh)) {
       player.vy = -spower; player.grounded = false; player.jumpsLeft = 2; 
       synthSFX('spring'); dust(player.x + player.w / 2, player.y + player.h, 24, 280);
+      player.squashX = 0.75; player.squashY = 1.35; // Vertical stretch on springboard launch
     }
   }
 
@@ -400,8 +468,7 @@ function update(dt) {
       if (e.x > e.maxX) { e.x = e.maxX; e.dir = -1; }
     }
     if (overlap(player.x, player.y, player.w, player.h, e.x, e.y, e.w, e.h)) {
-      game.deaths++; game.audioDamp = 0.15; dust(player.x + player.w / 2, player.y + player.h / 2, 20, 260);
-      respawn(); return;
+      triggerDeath(); return;
     }
   }
 
@@ -426,9 +493,11 @@ function update(dt) {
     if (player.grounded || player.coyote > 0) {
       player.vy = PHYS.jumpVel; player.grounded = false; player.coyote = 0; player.buffer = 0; player.jumpsLeft = 1; 
       synthSFX('jump'); dust(player.x + player.w / 2, player.y + player.h, 8);
+      player.squashX = 0.82; player.squashY = 1.25;
     } else if (player.jumpsLeft > 0) {
       player.vy = PHYS.jumpVel * 0.95; player.buffer = 0; player.jumpsLeft = 0; 
       synthSFX('jump'); dust(player.x + player.w / 2, player.y + player.h / 2, 14, 220);
+      player.squashX = 0.85; player.squashY = 1.20;
     }
   }
   
@@ -437,6 +506,7 @@ function update(dt) {
   }
 
   const wasGrounded = player.grounded;
+  const preCollisionVy = player.vy; // Store landing speed to compute squash juice
   player.grounded = false;
 
   player.x += player.vx * dt;
@@ -460,7 +530,14 @@ function update(dt) {
     if (overlap(player.x, player.y, player.w, player.h, px, py, pw, ph)) {
       if (player.vy > 0) {
         player.y = py - player.h; player.grounded = true; player.jumpsLeft = 2; 
-        if (!wasGrounded && player.vy > 500) dust(player.x + player.w / 2, player.y + player.h, 8);
+        
+        // Landing Squash Implementation (Item 1)
+        if (!wasGrounded && preCollisionVy > 450) { 
+          dust(player.x + player.w / 2, player.y + player.h, 10);
+          const landingForce = Math.min(1.4, 1.0 + (preCollisionVy - 450) * 0.0007);
+          player.squashX = landingForce;
+          player.squashY = 2.0 - landingForce; 
+        }
         player.vy = 0;
       } else if (player.vy < 0) {
         player.y = py + ph; player.vy = 0;
@@ -471,19 +548,20 @@ function update(dt) {
 
   for (const cp of L.checkpoints) {
     if (Math.abs(player.x - cp.x) < 30 && Math.abs(player.y - cp.y) < 90 && game.checkpoint.x !== cp.x) {
-      game.checkpoint = { ...cp }; dust(cp.x, cp.y + 80, 14, 80);
+      game.checkpoint = { ...cp }; 
+      dust(cp.x, cp.y + 80, 14, 80);
+      synthSFX('checkpoint'); // soft checkpoint chime (Item 1)
     }
   }
 
   for (const [hx, hy, hw, hh] of (L.hazards || [])) {
     if (overlap(player.x, player.y, player.w, player.h, hx, hy - 6, hw, hh + 6)) {
-      game.deaths++; game.audioDamp = 0.15; dust(player.x + player.w / 2, player.y + player.h / 2, 16, 240);
-      respawn(); return;
+      triggerDeath(); return;
     }
   }
 
   if (overlap(player.x, player.y, player.w, player.h, L.exit.x, L.exit.y, L.exit.w, L.exit.h)) game.state = 'FADE';
-  if (player.y > L.bottom) { game.deaths++; game.audioDamp = 0.15; respawn(); }
+  if (player.y > L.bottom) { triggerDeath(); return; }
 
   const speed = Math.abs(player.vx);
   if (player.grounded && speed > 30) {
@@ -502,6 +580,7 @@ function update(dt) {
 
   if (game.levelIndex === 0 && player.x > 4000 && player.x < 5100) cam.targetZoom = 0.55; 
   else if (game.levelIndex === 3 || game.levelIndex === 5) cam.targetZoom = 0.50; 
+  else if (game.levelIndex === 6 && player.x > 4000) cam.targetZoom = 0.45; // Camera pans out to frame final silhouette
   else cam.targetZoom = 0.85;
   
   cam.zoom += (cam.targetZoom - cam.zoom) * Math.min(1, dt * 2.5);
@@ -515,7 +594,8 @@ function update(dt) {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i]; p.t += dt;
     if (p.t > p.life) { particles.splice(i, 1); continue; }
-    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt; 
+    if (!p.isStatic) p.vy += 300 * dt; // Normal dust particles drop; static particles float away outward
   }
 
   for (let p of ambientParticles) {
@@ -528,15 +608,15 @@ function update(dt) {
 function render() {
   if (game.state === 'MENU' || game.state === 'INTRO') return;
 
+  if (game.state === 'STORY') { renderStory(); return; }
+  if (game.state === 'END') { renderEnd(); return; }
+
   if (bg.skyOk) {
     const s = Math.max(W / bg.sky.width, H / bg.sky.height);
     ctx.drawImage(bg.sky, (W - bg.sky.width * s) / 2, (H - bg.sky.height * s) / 2, bg.sky.width * s, bg.sky.height * s);
   } else {
     ctx.fillStyle = '#0a1228'; ctx.fillRect(0, 0, W, H);
   }
-
-  if (game.state === 'STORY') { renderStory(); return; }
-  if (game.state === 'END') { renderEnd(); return; }
 
   const mood = game.level.mood || { veil: [105,125,148], grade: null, darken: 0 };
   const [vr, vg, vb] = mood.veil;
@@ -569,6 +649,31 @@ function render() {
 
   ctx.save();
   ctx.translate(W / 2, H / 2); ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
+
+  // ---------- THE FINALE PRESENCE: SILHOUETTE BRAIN (Item 3) ----------
+  if (game.levelIndex === 6) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(6, 11, 23, 0.92)';
+    ctx.shadowColor = 'rgba(157, 184, 224, 0.12)';
+    ctx.shadowBlur = 60;
+    
+    // Abstract massive cerebral structure drawn programmatically right before the end door
+    ctx.beginPath();
+    ctx.arc(5000, -20, 240, 0, Math.PI * 2);
+    ctx.arc(5180, 20, 210, 0, Math.PI * 2);
+    ctx.arc(4840, 40, 180, 0, Math.PI * 2);
+    ctx.arc(5020, 160, 150, 0, Math.PI * 2); 
+    ctx.fill();
+    
+    // Connective brain stem silhouette anchors
+    ctx.beginPath();
+    ctx.moveTo(4950, 160);
+    ctx.quadraticCurveTo(4930, 300, 4800, 400);
+    ctx.lineTo(5100, 400);
+    ctx.quadraticCurveTo(5020, 280, 5050, 160);
+    ctx.fill();
+    ctx.restore();
+  }
 
   const L = game.level;
   for (let i = 0; i < L.platforms.length; i++) {
@@ -611,11 +716,20 @@ function render() {
   const pulse = 0.55 + 0.25 * Math.sin(performance.now() / 400);
   ctx.fillStyle = `rgba(223,232,245,${pulse})`; ctx.fillRect(L.exit.x, L.exit.y, L.exit.w, L.exit.h);
 
-  ctx.fillStyle = '#9db8e0';
+  // Render particle pipelines
   for (const p of particles) {
-    ctx.globalAlpha = 1 - p.t / p.life; ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    ctx.save();
+    ctx.globalAlpha = 1 - p.t / p.life; 
+    if (p.isStatic) {
+      // Death dissolve square shards
+      ctx.fillStyle = 'rgba(157, 184, 224, 0.85)';
+      ctx.fillRect(p.x - 3, p.y - 3, 5, 5);
+    } else {
+      ctx.fillStyle = '#9db8e0';
+      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    }
+    ctx.restore();
   }
-  ctx.globalAlpha = 1;
 
   // ---------- enemies ----------
   for (let e of enemies) {
@@ -634,7 +748,7 @@ function render() {
     ctx.restore();
   }
 
-  drawPlayer();
+  if (!player.isDying) drawPlayer();
   ctx.restore();
 
   // ---------- per-chapter color grade ----------
@@ -655,8 +769,20 @@ function render() {
 
 // ---------- overlay screens ----------
 function renderStory() {
-  ctx.fillStyle = 'rgba(5, 9, 15, 0.55)';
+  ctx.save();
+  ctx.fillStyle = '#05090f';
   ctx.fillRect(0, 0, W, H);
+
+  // GRIS-Grade Title Plate Illustrations Integration (Item 2)
+  if (cardImagesOk[game.levelIndex]) {
+    ctx.save();
+    ctx.globalAlpha = 0.22; // Subdued behind the typography layout
+    const img = cardImages[game.levelIndex];
+    const s = Math.max(W / img.width, H / img.height);
+    ctx.drawImage(img, (W - img.width * s) / 2, (H - img.height * s) / 2, img.width * s, img.height * s);
+    ctx.restore();
+  }
+
   const L = game.level;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#9db8e0';
@@ -675,22 +801,29 @@ function renderStory() {
     ctx.font = '13px Georgia, serif';
     ctx.fillText('press any key', W / 2, H * 0.78);
   }
+  ctx.restore();
 }
 
 function renderEnd() {
-  ctx.fillStyle = 'rgba(5, 9, 15, 0.92)';
+  ctx.fillStyle = 'rgba(5, 9, 15, 0.94)';
   ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'center';
   ctx.fillStyle = '#dfe8f5';
   ctx.font = '30px Georgia, serif';
-  ctx.fillText('THE SKY HAS OPENED UP', W / 2, H * 0.4);
+  ctx.fillText('THE SKY HAS OPENED UP', W / 2, H * 0.38);
   ctx.fillStyle = 'rgba(223,232,245,0.75)';
   ctx.font = '15px Georgia, serif';
   const line = game.deaths === 0
     ? 'He fell zero times. He suspects this means nothing.'
     : `He fell ${game.deaths} time${game.deaths === 1 ? '' : 's'}. He kept the suit clean anyway.`;
-  ctx.fillText(line, W / 2, H * 0.4 + 40);
-  ctx.fillStyle = `rgba(157,184,224,${0.4 + 0.3 * Math.sin(performance.now() / 500)})`;
+  ctx.fillText(line, W / 2, H * 0.38 + 40);
+  
+  // Shareability Element Integration (Item 4)
+  ctx.fillStyle = 'rgba(157,184,224,0.4)';
+  ctx.font = '11px Georgia, serif';
+  ctx.fillText('BRUDER MOTION PORTFOLIO PIECE', W / 2, H * 0.55);
+
+  ctx.fillStyle = `rgba(223,232,245,${0.45 + 0.3 * Math.sin(performance.now() / 500)})`;
   ctx.font = '13px Georgia, serif';
   ctx.fillText('press any key to run again', W / 2, H * 0.72);
 }
@@ -740,7 +873,7 @@ function lightShafts() {
   ctx.restore();
 }
 
-// ---------- player ----------
+// ---------- player rendering matrix layout ----------
 function drawPlayer() {
   const drawH = 100;
   const drawW = drawH * SHEET.cw / SHEET.ch;
@@ -749,7 +882,8 @@ function drawPlayer() {
 
   ctx.save();
   ctx.translate(cx, feetY);
-  ctx.scale(player.dir, 1);
+  // Matrix transformation scaling controls squash & stretch (Item 1)
+  ctx.scale(player.dir * player.squashX, player.squashY);
   if (spriteReady) {
     ctx.shadowColor = 'rgba(157, 184, 224, 0.6)';
     ctx.shadowBlur = 14;
