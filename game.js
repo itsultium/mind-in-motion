@@ -19,7 +19,7 @@ resize();
 // ---------- sprite sheet ----------
 const SHEET = { cols: 11, runFrames: 8, idle: 8, jump: 9, fall: 10, cw: 260, ch: 360, feetPad: 8 };
 const sprite = new Image();
-sprite.src = 'assets/bruder_run_sheet.png';
+sprite.src = 'bruder_run_sheet.png';
 let spriteReady = false;
 sprite.onload = () => spriteReady = true;
 
@@ -30,14 +30,14 @@ const bg = {
   skyOk: false, hillsOk: false, monoOk: false,
   ruinsOk: false, debrisOk: false, occlOk: false
 };
-bg.sky.src = 'assets/bg_sky.jpg';      bg.sky.onload = () => bg.skyOk = true;
-bg.hills.src = 'assets/bg_hills.png';  bg.hills.onload = () => bg.hillsOk = true;
-bg.mono.src = 'assets/bg_monoliths.png'; bg.mono.onload = () => bg.monoOk = true;
-bg.ruins.src = 'assets/bg_ruins.png';  bg.ruins.onload = () => bg.ruinsOk = true;
-bg.debris.src = 'assets/bg_debris.png'; bg.debris.onload = () => bg.debrisOk = true;
-bg.occl.src = 'assets/bg_occl_thin.png'; bg.occl.onload = () => bg.occlOk = true;
+bg.sky.src = 'bg_sky.jpg';      bg.sky.onload = () => bg.skyOk = true;
+bg.hills.src = 'bg_hills.png';  bg.hills.onload = () => bg.hillsOk = true;
+bg.mono.src = 'bg_monoliths.png'; bg.mono.onload = () => bg.monoOk = true;
+bg.ruins.src = 'bg_ruins.png';  bg.ruins.onload = () => bg.ruinsOk = true;
+bg.debris.src = 'bg_debris.png'; bg.debris.onload = () => bg.debrisOk = true;
+bg.occl.src = 'bg_occl_thin.png'; bg.occl.onload = () => bg.occlOk = true;
 bg.shard = new Image(); bg.shardOk = false;
-bg.shard.src = 'assets/bg_occl_shard.png'; bg.shard.onload = () => bg.shardOk = true;
+bg.shard.src = 'bg_occl_shard.png'; bg.shard.onload = () => bg.shardOk = true;
 
 // ---------- physics ----------
 const PHYS = {
@@ -351,14 +351,16 @@ function render() {
   if (game.state === 'END') { renderEnd(); return; }
 
   // ---- depth stack: far to near, fog veil between each ----
+  const mood = game.level.mood || { veil: [105,125,148], grade: null, darken: 0 };
+  const [vr, vg, vb] = mood.veil;
   layer(bg.hills, bg.hillsOk, 0.18, 0.58);
-  ctx.fillStyle = 'rgba(105, 125, 148, 0.24)';
+  ctx.fillStyle = `rgba(${vr}, ${vg}, ${vb}, 0.24)`;
   ctx.fillRect(0, 0, W, H);
   layer(bg.ruins, bg.ruinsOk, 0.30, 0.34);
-  ctx.fillStyle = 'rgba(98, 118, 140, 0.16)';
+  ctx.fillStyle = `rgba(${vr}, ${vg}, ${vb}, 0.16)`;
   ctx.fillRect(0, 0, W, H);
   layer(bg.mono, bg.monoOk, 0.45, 0.66);
-  ctx.fillStyle = 'rgba(90, 110, 132, 0.07)';
+  ctx.fillStyle = `rgba(${vr}, ${vg}, ${vb}, 0.07)`;
   ctx.fillRect(0, 0, W, H);
   fogDrift();
   lightShafts();
@@ -426,6 +428,11 @@ function render() {
 
   drawPlayer();
   ctx.restore();
+
+  // per-chapter color grade
+  const gm = game.level.mood;
+  if (gm && gm.grade) { ctx.fillStyle = gm.grade; ctx.fillRect(0, 0, W, H); }
+  if (gm && gm.darken) { ctx.fillStyle = `rgba(4, 6, 14, ${gm.darken})`; ctx.fillRect(0, 0, W, H); }
 
   // level name, small, top corner
   ctx.fillStyle = 'rgba(157,184,224,0.5)';
