@@ -22,6 +22,36 @@
     transition: opacity 1.2s ease-in-out;
   }
 
+  /* Browser Autoplay Gatekeeper */
+  #gatekeeper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #05090f;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.6s ease-in-out;
+  }
+  #gatekeeper h1 {
+    color: #dfe8f5;
+    font: 28px Georgia, serif;
+    letter-spacing: 6px;
+    margin-bottom: 12px;
+    opacity: 0.85;
+  }
+  #gatekeeper p {
+    color: #9db8e0;
+    font: 12px Georgia, serif;
+    letter-spacing: 3px;
+    opacity: 0.5;
+  }
+
   #hud {
     position: fixed; top: 10px; left: 12px; color: #9db8e0; opacity: 0.6;
     font: 12px/1.4 Georgia, serif; letter-spacing: 1px; pointer-events: none;
@@ -42,7 +72,12 @@
 </head>
 <body>
 
-<video id="intro-video" src="https://res.cloudinary.com/dcjst7sod/video/upload/v1781299675/Story_0_xbmfds.mp4" autoplay playsinline></video>
+<div id="gatekeeper">
+  <h1>MIND IN MOTION</h1>
+  <p>CLICK TO ENTER</p>
+</div>
+
+<video id="intro-video" src="https://res.cloudinary.com/dcjst7sod/video/upload/v1781299675/Story_0_xbmfds.mp4" playsinline></video>
 
 <canvas id="c"></canvas>
 <div id="hud">ARROWS / WASD &nbsp;·&nbsp; SPACE TO JUMP &nbsp;·&nbsp; R RESTART · M MUTE</div>
