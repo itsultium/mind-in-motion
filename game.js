@@ -144,7 +144,7 @@ function startAudio() {
   audioChannels.ctx = new AudioCtx();
 
   audioChannels.nature.loop = true;
-  audioChannels.nature.volume = 0.35; // Boosted baseline from 0.15
+  audioChannels.nature.volume = 0.55; 
   audioChannels.nature.play().catch(() => {});
 
   audioChannels.music.loop = true;
@@ -165,7 +165,7 @@ function synthSFX(type) {
     osc.type = 'sine';
     osc.frequency.setValueAtTime(280, now);
     osc.frequency.exponentialRampToValueAtTime(520, now + 0.12);
-    gain.gain.setValueAtTime(0.18, now); // Boosted from 0.12
+    gain.gain.setValueAtTime(0.25, now); 
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
     osc.connect(gain); gain.connect(ctxNode.destination);
     osc.start(now); osc.stop(now + 0.41);
@@ -177,7 +177,7 @@ function synthSFX(type) {
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(75, now);
     filter.type = 'lowpass'; filter.frequency.setValueAtTime(120, now);
-    gain.gain.setValueAtTime(0.08, now); // Boosted from 0.05
+    gain.gain.setValueAtTime(0.15, now); 
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
     osc.connect(filter); filter.connect(gain); gain.connect(ctxNode.destination);
     osc.start(now); osc.stop(now + 0.09);
@@ -190,7 +190,7 @@ function synthSFX(type) {
     osc1.frequency.exponentialRampToValueAtTime(650, now + 0.3);
     osc2.type = 'triangle'; osc2.frequency.setValueAtTime(220, now);
     osc2.frequency.exponentialRampToValueAtTime(880, now + 0.25);
-    gain.gain.setValueAtTime(0.22, now); // Boosted from 0.15
+    gain.gain.setValueAtTime(0.35, now); 
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
     osc1.connect(gain); osc2.connect(gain); gain.connect(ctxNode.destination);
     osc1.start(now); osc2.start(now); osc1.stop(now + 0.6); osc2.stop(now + 0.6);
@@ -203,7 +203,7 @@ function synthSFX(type) {
     osc1.frequency.exponentialRampToValueAtTime(880, now + 0.2);
     osc2.type = 'sine'; osc2.frequency.setValueAtTime(700, now);
     osc2.frequency.exponentialRampToValueAtTime(1150, now + 0.35);
-    gain.gain.setValueAtTime(0.12, now); // Boosted from 0.06
+    gain.gain.setValueAtTime(0.25, now); 
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
     osc1.connect(gain); osc2.connect(gain); gain.connect(ctxNode.destination);
     osc1.start(now); osc2.start(now); osc1.stop(now + 0.5); osc2.stop(now + 0.5);
@@ -213,9 +213,9 @@ function synthSFX(type) {
 function updateAudioMixing(dt) {
   if (!audioChannels.initialized || audioChannels.muted) return;
   if (game.state === 'PLAY') {
-    audioChannels.currentMusicTarget = (game.levelIndex === 6 && player.x > 4200) ? 0.65 : 0.45; // Boosted from 0.45 / 0.25
-  } else if (game.state === 'STORY' || game.state === 'PAUSE') {
-    audioChannels.currentMusicTarget = 0.15; // Boosted from 0.05
+    audioChannels.currentMusicTarget = (game.levelIndex === 6 && player.x > 4200) ? 0.75 : 0.55; 
+  } else if (game.state === 'STORY' || game.state === 'PAUSE' || game.state === 'MENU') {
+    audioChannels.currentMusicTarget = 0.25; 
   } else {
     audioChannels.currentMusicTarget = 0.0;
   }
@@ -231,7 +231,7 @@ function toggleMute() {
   audioChannels.muted = !audioChannels.muted;
   const masterSwitch = audioChannels.muted ? 0 : 1;
   audioChannels.nature.volume = 0.35 * masterSwitch;
-  audioChannels.music.volume = (game.state === 'PLAY' ? 0.45 : 0.15) * masterSwitch;
+  audioChannels.music.volume = (game.state === 'PLAY' ? 0.55 : 0.25) * masterSwitch;
 }
 
 // ---------- interactive menu select & cache save system ----------
@@ -249,13 +249,17 @@ const menuSubtitleText = document.getElementById('menu-subtitle-text');
 
 const RomanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII"];
 
-// Robust Video Loop Enforcement Listener Matrix
+// Throttled frame pipeline synchronization listener to avoid lag on 8GB machines
+let videoFrameAvailable = false;
 if (menuVideoBg) {
-  menuVideoBg.addEventListener('ended', () => {
+  const forceLoopVideo = () => {
     menuVideoBg.currentTime = 0;
-    menuVideoBg.play().catch(err => console.log("Menu video loop re-trigger intercepted:", err));
-  });
-  // Handles background thread optimization freezes cleanly
+    menuVideoBg.play().catch(() => {});
+  };
+  menuVideoBg.addEventListener('ended', forceLoopVideo);
+  menuVideoBg.addEventListener('play', () => { videoFrameAvailable = true; });
+  menuVideoBg.addEventListener('loadeddata', () => { videoFrameAvailable = true; });
+  
   window.addEventListener('focus', () => {
     if (game.state === 'MENU' || game.state === 'PAUSE') {
       menuVideoBg.play().catch(() => {});
@@ -529,7 +533,6 @@ function dust(x, y, n, spread = 160) {
   }
 }
 
-// Keep core loop updates active
 function overlap(ax, ay, aw, ah, bx, by, bw, bh) {
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
@@ -755,7 +758,25 @@ function update(dt) {
 }
 
 function render() {
-  if (game.state === 'MENU' || game.state === 'INTRO') return;
+  // Performance Patch: Canvas-driven frame capture for 8GB devices to eradicate lag completely
+  if (game.state === 'MENU' || game.state === 'PAUSE') {
+    ctx.fillStyle = '#05090f';
+    ctx.fillRect(0, 0, W, H);
+    if (videoFrameAvailable && menuVideoBg) {
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      const vWidth = menuVideoBg.videoWidth || W;
+      const vHeight = menuVideoBg.videoHeight || H;
+      const scale = Math.max(W / vWidth, H / vHeight);
+      const xOff = (W - vWidth * scale) / 2;
+      const yOff = (H - vHeight * scale) / 2;
+      ctx.drawImage(menuVideoBg, xOff, yOff, vWidth * scale, vHeight * scale);
+      ctx.restore();
+    }
+    return; // Fast escape out of physics render stack
+  }
+
+  if (game.state === 'INTRO') return;
   if (game.state === 'STORY') { renderStory(); return; }
   if (game.state === 'END') { renderEnd(); return; }
 
