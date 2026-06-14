@@ -86,7 +86,6 @@ const player = {
   animTime: 0, frame: SHEET.idle,
   jumpsLeft: 2,        
   stepTimer: 0,
-  // Juice Extensions
   isDying: false,
   deathTimer: 0,
   squashX: 1,
@@ -101,20 +100,20 @@ const enemies = [];
 // ---------- asteroid system (chapters 1-6, dimension collapse) ----------
 const asteroids = [];
 const ASTEROID_CONFIG = [
-  { density: 0.4, speedMin: 180, speedMax: 260, sizeMin: 2, sizeMax: 4,  alpha: 0.25 }, // Ch1 - barely there
-  { density: 0.7, speedMin: 200, speedMax: 300, sizeMin: 2, sizeMax: 5,  alpha: 0.35 }, // Ch2
-  { density: 1.2, speedMin: 240, speedMax: 360, sizeMin: 3, sizeMax: 6,  alpha: 0.45 }, // Ch3
-  { density: 1.8, speedMin: 280, speedMax: 420, sizeMin: 3, sizeMax: 8,  alpha: 0.55 }, // Ch4
-  { density: 0.5, speedMin: 160, speedMax: 240, sizeMin: 2, sizeMax: 4,  alpha: 0.20 }, // Ch5 - clarity, pulls back
-  { density: 2.8, speedMin: 340, speedMax: 520, sizeMin: 4, sizeMax: 10, alpha: 0.70 }, // Ch6 - heaviest
+  { density: 0.4, speedMin: 180, speedMax: 260, sizeMin: 2, sizeMax: 4,  alpha: 0.25 }, 
+  { density: 0.7, speedMin: 200, speedMax: 300, sizeMin: 2, sizeMax: 5,  alpha: 0.35 }, 
+  { density: 1.2, speedMin: 240, speedMax: 360, sizeMin: 3, sizeMax: 6,  alpha: 0.45 }, 
+  { density: 1.8, speedMin: 280, speedMax: 420, sizeMin: 3, sizeMax: 8,  alpha: 0.55 }, 
+  { density: 0.5, speedMin: 160, speedMax: 240, sizeMin: 2, sizeMax: 4,  alpha: 0.20 }, 
+  { density: 2.8, speedMin: 340, speedMax: 520, sizeMin: 4, sizeMax: 10, alpha: 0.70 }, 
 ];
 
 function spawnAsteroid() {
-  if (game.levelIndex >= 6) return; // No asteroids in Ch7
+  if (game.levelIndex >= 6) return; 
   const cfg = ASTEROID_CONFIG[game.levelIndex];
   const speed = cfg.speedMin + Math.random() * (cfg.speedMax - cfg.speedMin);
   const size  = cfg.sizeMin  + Math.random() * (cfg.sizeMax  - cfg.sizeMin);
-  const angle = (0.45 + Math.random() * 0.25); // ~25-40 degrees, falling right-to-left ish
+  const angle = (0.45 + Math.random() * 0.25); 
   asteroids.push({
     x: Math.random() * W * 1.4,
     y: -20 - Math.random() * 80,
@@ -238,6 +237,7 @@ function toggleMute() {
 // ---------- interactive menu select & cache save system ----------
 const gatekeeper = document.getElementById('gatekeeper');
 const videoElement = document.getElementById('intro-video');
+const introContainer = document.getElementById('intro-container');
 const newJourneyBtn = document.getElementById('menu-new-btn');
 const continueBtn = document.getElementById('menu-cont-btn');
 const levelSelectPanel = document.getElementById('level-select-panel');
@@ -275,24 +275,24 @@ function bootIntoSystem(targetIndex, playIntroVideo) {
   setTimeout(() => gatekeeper.remove(), 600);
   startAudio();
 
-  if (playIntroVideo && videoElement) {
+  if (playIntroVideo && videoElement && introContainer) {
     game.state = 'INTRO';
-    videoElement.style.opacity = '1';
+    introContainer.classList.add('active');
     videoElement.play().catch(e => {
       videoElement.muted = true;
       videoElement.play().catch(err => console.log(err));
     });
   } else {
-    if (videoElement) videoElement.remove();
+    if (introContainer) introContainer.remove();
     loadLevel(targetIndex);
   }
 }
 
 if (videoElement) {
   videoElement.addEventListener('ended', () => {
-    videoElement.style.opacity = '0';
+    if (introContainer) introContainer.style.opacity = '0';
     setTimeout(() => {
-      if (videoElement) videoElement.remove();
+      if (introContainer) introContainer.remove();
       loadLevel(0);
     }, 1200);
   });
@@ -300,9 +300,9 @@ if (videoElement) {
 
 function skipVideo() {
   if (game.state === 'INTRO') {
-    if (videoElement) videoElement.style.opacity = '0';
+    if (introContainer) introContainer.style.opacity = '0';
     setTimeout(() => {
-      if (videoElement) videoElement.remove();
+      if (introContainer) introContainer.remove();
       loadLevel(0);
     }, 1200);
   }
@@ -362,7 +362,6 @@ function respawn() {
   cam.zoom = 1.0; cam.targetZoom = 1.0;
   initLevelEnemies(); 
 
-  // Reset keyboard flags explicitly on respawn to completely kill stuck runner motions
   keys.left = false;
   keys.right = false;
   jumpHeld = false;
@@ -376,7 +375,6 @@ function triggerDeath() {
   game.deaths++;
   game.audioDamp = 0.15;
   
-  // Spark static digital particles outward
   for (let i = 0; i < 40; i++) {
     particles.push({
       x: player.x + Math.random() * player.w,
@@ -401,7 +399,6 @@ function anyKeyAdvance() {
       game.storyLine = game.level.story.length;
     } else {
       game.state = 'PLAY';
-      // Completely flush operational state trackers on story exit
       keys.left = false;
       keys.right = false;
       jumpHeld = false;
@@ -413,7 +410,6 @@ function anyKeyAdvance() {
 }
 
 function setKey(code, down) {
-  // 1. GLOBAL UNBOUND OVERRIDE: Release state must always cleanly drop, no exceptions
   if (!down) {
     if (code === 'ArrowLeft' || code === 'KeyA') keys.left = false;
     if (code === 'ArrowRight' || code === 'KeyD') keys.right = false;
@@ -421,12 +417,10 @@ function setKey(code, down) {
     return;
   }
 
-  // 2. TIMING INTERRUPTS: Gate logic during screens and freeze frames
   if (game.state === 'MENU' || player.isDying) return;
   if (anyKeyAdvance()) return;
   if (code === 'KeyM') { toggleMute(); return; }
 
-  // 3. SECURE ACTION BINDINGS
   if (code === 'ArrowLeft' || code === 'KeyA') keys.left = true;
   if (code === 'ArrowRight' || code === 'KeyD') keys.right = true;
   if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') {
@@ -442,11 +436,14 @@ window.addEventListener('keyup',   e => setKey(e.code, false));
 function bindBtn(id, code) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.addEventListener('touchstart', e => { setKey(code, true); e.preventDefault(); });
-  el.addEventListener('touchend',   e => { setKey(code, false); e.preventDefault(); });
+  el.addEventListener('touchstart', e => { setKey(code, true); e.preventDefault(); }, { passive: false });
+  el.addEventListener('touchend',   e => { setKey(code, false); e.preventDefault(); }, { passive: false });
 }
 bindBtn('btnL', 'ArrowLeft'); bindBtn('btnR', 'ArrowRight'); bindBtn('btnJ', 'Space');
 canvas.addEventListener('touchstart', () => anyKeyAdvance());
+if (introContainer) {
+  introContainer.addEventListener('touchstart', () => anyKeyAdvance());
+}
 
 function dust(x, y, n, spread = 160) {
   for (let i = 0; i < n; i++) {
@@ -483,11 +480,9 @@ function update(dt) {
   }
   if (game.state === 'END') return;
 
-  // Fluid physics layout decays squash transformations smoothly
   player.squashX += (1 - player.squashX) * 10 * dt;
   player.squashY += (1 - player.squashY) * 10 * dt;
 
-  // Death phase countdown logic
   if (player.isDying) {
     player.deathTimer -= dt;
     if (player.deathTimer <= 0) respawn();
@@ -503,7 +498,6 @@ function update(dt) {
   if (player.x > 550) game.targetBloom = 1.0;
   game.bloom += (game.targetBloom - game.bloom) * 1.8 * dt;
 
-  // ---------- asteroid system update ----------
   if (game.levelIndex < 6) {
     const cfg = ASTEROID_CONFIG[game.levelIndex];
     asteroidSpawnTimer += dt;
@@ -614,7 +608,6 @@ function update(dt) {
       if (player.vy > 0) {
         player.y = py - player.h; player.grounded = true; player.jumpsLeft = 2; 
         
-        // Execute landing squash transformations dynamically
         if (!wasGrounded && preCollisionVy > 450) { 
           dust(player.x + player.w / 2, player.y + player.h, 10);
           const landingForce = Math.min(1.4, 1.0 + (preCollisionVy - 450) * 0.0007);
@@ -690,15 +683,12 @@ function update(dt) {
 
 function render() {
   if (game.state === 'MENU' || game.state === 'INTRO') return;
-
   if (game.state === 'STORY') { renderStory(); return; }
   if (game.state === 'END') { renderEnd(); return; }
 
-  // ---------- background rendering ----------
   const isBeyond = game.levelIndex === 6;
 
   if (isBeyond) {
-    // Chapter VII — new world sky
     if (bgCh7.skyOk) {
       const s = Math.max(W / bgCh7.sky.width, H / bgCh7.sky.height);
       ctx.drawImage(bgCh7.sky, (W - bgCh7.sky.width * s) / 2, (H - bgCh7.sky.height * s) / 2, bgCh7.sky.width * s, bgCh7.sky.height * s);
@@ -718,7 +708,6 @@ function render() {
   const [vr, vg, vb] = mood.veil;
 
   if (isBeyond) {
-    // Ch7 parallax layers
     layer(bgCh7.hills, bgCh7.hillsOk, 0.15, 0.62, 1.0);
     ctx.fillStyle = `rgba(0, 160, 160, 0.12)`; ctx.fillRect(0, 0, W, H);
     layer(bgCh7.mono,  bgCh7.monoOk,  0.35, 0.72, 1.0);
@@ -741,12 +730,10 @@ function render() {
   layer(bg.occl,  bg.occlOk,  0.85, 1.05, 2.2);
   layer(bg.debris, bg.debrisOk, 1.25, 0.35, 1.5);
 
-  // ---------- asteroid draw (ch1-6, behind gameplay) ----------
   if (asteroids.length > 0) {
     ctx.save();
     for (const a of asteroids) {
       if (a.trail.length < 2) continue;
-      // Trail
       for (let t = 0; t < a.trail.length - 1; t++) {
         const frac = t / a.trail.length;
         ctx.beginPath();
@@ -756,7 +743,6 @@ function render() {
         ctx.lineWidth = a.size * frac * 0.9;
         ctx.stroke();
       }
-      // Core fireball
       const grd = ctx.createRadialGradient(a.x, a.y, 0, a.x, a.y, a.size * 2.5);
       grd.addColorStop(0, `rgba(255, 240, 180, ${a.alpha})`);
       grd.addColorStop(0.4, `rgba(255, 140, 30, ${a.alpha * 0.7})`);
@@ -784,7 +770,6 @@ function render() {
   ctx.save();
   ctx.translate(W / 2, H / 2); ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
 
-  // ---------- CHAPTER VII BEYOND WORLD PRESENCE ----------
   if (game.levelIndex === 6) {
     ctx.save();
     ctx.fillStyle = 'rgba(0, 8, 18, 0.88)';
@@ -805,7 +790,6 @@ function render() {
     ctx.quadraticCurveTo(6220, 270, 6250, 150);
     ctx.fill();
 
-    // Cyan rim glow on brain
     ctx.shadowColor = 'rgba(0, 230, 230, 0.35)';
     ctx.shadowBlur = 40;
     ctx.strokeStyle = 'rgba(0, 200, 200, 0.12)';
@@ -870,7 +854,6 @@ function render() {
     ctx.restore();
   }
 
-  // ---------- enemies ----------
   for (let e of enemies) {
     ctx.save();
     ctx.translate(e.x + e.w / 2, e.y + e.h);
@@ -893,7 +876,6 @@ function render() {
   if (!player.isDying) drawPlayer();
   ctx.restore();
 
-  // ---------- per-chapter color grade ----------
   const gm = game.level.mood;
   if (gm && gm.grade) { ctx.fillStyle = gm.grade; ctx.fillRect(0, 0, W, H); }
   if (gm && gm.darken) { ctx.fillStyle = `rgba(4, 6, 14, ${gm.darken})`; ctx.fillRect(0, 0, W, H); }
@@ -909,13 +891,11 @@ function render() {
   }
 }
 
-// ---------- overlay screens ----------
 function renderStory() {
   ctx.save();
   ctx.fillStyle = '#05090f';
   ctx.fillRect(0, 0, W, H);
 
-  // Map generated illustrations behind text
   if (cardImagesOk[game.levelIndex]) {
     ctx.save();
     ctx.globalAlpha = 0.22; 
@@ -960,7 +940,6 @@ function renderEnd() {
     : `He fell ${game.deaths} time${game.deaths === 1 ? '' : 's'}. He kept the suit clean anyway.`;
   ctx.fillText(line, W / 2, H * 0.38 + 40);
   
-  // Showcase Tag Line
   ctx.fillStyle = 'rgba(157,184,224,0.4)';
   ctx.font = '11px Georgia, serif';
   ctx.fillText('BRUDER MOTION PORTFOLIO PIECE', W / 2, H * 0.55);
@@ -970,7 +949,6 @@ function renderEnd() {
   ctx.fillText('press any key to run again', W / 2, H * 0.72);
 }
 
-// ---------- background helpers ----------
 function layer(img, ok, p, hFrac, gap = 1) {
   if (!ok) return;
   const lh = H * hFrac;
@@ -1015,7 +993,6 @@ function lightShafts() {
   ctx.restore();
 }
 
-// ---------- player physics render engine matrix transformation ----------
 function drawPlayer() {
   const drawH = 100;
   const drawW = drawH * SHEET.cw / SHEET.ch;
@@ -1039,7 +1016,6 @@ function drawPlayer() {
   ctx.restore();
 }
 
-// ---------- main loop ----------
 let last = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 1 / 30);
