@@ -2,10 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Mind in Motion — An Atmospheric Odyssey</title>
 
-<!-- Shareability Package: Open Graph & Meta Tags -->
 <meta name="description" content="An atmospheric cinematic platformer engineered by Bruder Motion. Run, leap, and transcend the static.">
 <meta property="og:title" content="Mind in Motion">
 <meta property="og:description" content="Experience the platformer portfolio showcase by Bruder Motion. Built from raw code to high design.">
@@ -25,11 +24,19 @@
   html, body { height: 100%; overflow: hidden; background: #05090f; touch-action: none; }
   canvas { display: block; width: 100vw; height: 100vh; }
   
-  /* Cinematic Intro Video Overlay */
-  #intro-video {
+  /* Cinematic Intro Video Overlay Container */
+  #intro-container {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    object-fit: cover; z-index: 999; background: #05090f;
-    transition: opacity 1.2s ease-in-out; pointer-events: none; opacity: 0;
+    z-index: 999; background: #05090f; transition: opacity 1.2s ease-in-out;
+    pointer-events: none; opacity: 0;
+  }
+  #intro-container.active { pointer-events: auto; opacity: 1; }
+  #intro-video { width: 100%; height: 100%; object-fit: cover; }
+  
+  .skip-prompt {
+    position: absolute; bottom: 30px; right: 30px; color: #9db8e0;
+    font: 11px Georgia, serif; letter-spacing: 2px; opacity: 0.4;
+    animation: pulseText 2s infinite ease-in-out; pointer-events: none;
   }
 
   /* Artistic Main Menu System Overlay */
@@ -87,6 +94,11 @@
   #btnL { left: 20px; }
   #btnR { left: 100px; }
   #btnJ { right: 24px; width: 76px; height: 76px; }
+  
+  @keyframes pulseText {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.6; }
+  }
   @media (pointer: coarse) { .btn { display: flex; } }
 </style>
 </head>
@@ -104,7 +116,10 @@
   </div>
 </div>
 
-<video id="intro-video" src="https://res.cloudinary.com/dcjst7sod/video/upload/v1781299675/Story_0_xbmfds.mp4" playsinline preload="auto"></video>
+<div id="intro-container">
+  <video id="intro-video" src="https://res.cloudinary.com/dcjst7sod/video/upload/v1781299675/Story_0_xbmfds.mp4" playsinline preload="auto"></video>
+  <div class="skip-prompt">TAP ANYWHERE TO SKIP</div>
+</div>
 
 <canvas id="c"></canvas>
 <div id="hud">ARROWS / WASD &nbsp;·&nbsp; SPACE TO JUMP &nbsp;·&nbsp; R RESTART · M MUTE</div>
