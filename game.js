@@ -214,8 +214,8 @@ function updateAudioMixing(dt) {
   if (!audioChannels.initialized || audioChannels.muted) return;
   if (game.state === 'PLAY') {
     audioChannels.currentMusicTarget = (game.levelIndex === 6 && player.x > 4200) ? 0.45 : 0.25;
-  } else if (game.state === 'STORY') {
-    audioChannels.currentMusicTarget = 0.02; 
+  } else if (game.state === 'STORY' || game.state === 'PAUSE') {
+    audioChannels.currentMusicTarget = 0.05; 
   } else {
     audioChannels.currentMusicTarget = 0.0;
   }
@@ -240,8 +240,11 @@ const videoElement = document.getElementById('intro-video');
 const introContainer = document.getElementById('intro-container');
 const newJourneyBtn = document.getElementById('menu-new-btn');
 const continueBtn = document.getElementById('menu-cont-btn');
+const quitBtn = document.getElementById('menu-quit-btn');
 const levelSelectPanel = document.getElementById('level-select-panel');
 const nodesContainer = document.getElementById('nodes-container');
+const menuTitleText = document.getElementById('menu-title-text');
+const menuSubtitleText = document.getElementById('menu-subtitle-text');
 
 const RomanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII"];
 
@@ -249,30 +252,76 @@ function setupSaveMenu() {
   const highestUnlocked = parseInt(localStorage.getItem('mim_unlocked_stage') || "0");
   const lastSavedLevel = parseInt(localStorage.getItem('mim_saved_stage') || "0");
 
-  if (lastSavedLevel > 0) {
+  // Re-evaluates visibility strings based on application phase
+  if (game.state === 'PAUSE') {
+    menuTitleText.innerText = "GAME PAUSED";
+    menuSubtitleText.innerText = `${LEVELS[game.levelIndex].subtitle} — ${LEVELS[game.levelIndex].name}`;
+    newJourneyBtn.innerText = "RESTART LEVEL";
+    continueBtn.innerText = "RESUME GAME";
     continueBtn.style.display = "block";
-    continueBtn.addEventListener('click', () => bootIntoSystem(lastSavedLevel, false));
-  }
-  
-  if (highestUnlocked > 0) {
-    levelSelectPanel.style.opacity = "1";
-    nodesContainer.innerHTML = "";
-    for (let i = 0; i <= Math.min(highestUnlocked, 6); i++) {
-      if (i >= LEVELS.length) break;
-      const btn = document.createElement('button');
-      btn.className = "node-btn";
-      btn.innerHTML = RomanNumerals[i];
-      btn.addEventListener('click', () => bootIntoSystem(i, false));
-      nodesContainer.appendChild(btn);
+    quitBtn.style.display = "block";
+    levelSelectPanel.style.opacity = "0";
+    levelSelectPanel.style.pointerEvents = "none";
+  } else {
+    menuTitleText.innerText = "MIND IN MOTION";
+    menuSubtitleText.innerText = "An Atmospheric Odyssey";
+    newJourneyBtn.innerText = "NEW JOURNEY";
+    quitBtn.style.display = "none";
+    levelSelectPanel.style.pointerEvents = "auto";
+    
+    if (lastSavedLevel > 0) {
+      continueBtn.innerText = "CONTINUE";
+      continueBtn.style.display = "block";
+    } else {
+      continueBtn.style.display = "none";
+    }
+
+    if (highestUnlocked > 0) {
+      levelSelectPanel.style.opacity = "1";
+      nodesContainer.innerHTML = "";
+      for (let i = 0; i <= Math.min(highestUnlocked, 6); i++) {
+        if (i >= LEVELS.length) break;
+        const btn = document.createElement('button');
+        btn.className = "node-btn";
+        btn.innerHTML = RomanNumerals[i];
+        btn.addEventListener('click', () => bootIntoSystem(i, false));
+        nodesContainer.appendChild(btn);
+      }
+    } else {
+      levelSelectPanel.style.opacity = "0";
     }
   }
-
-  newJourneyBtn.addEventListener('click', () => bootIntoSystem(0, true));
 }
 
+newJourneyBtn.addEventListener('click', () => {
+  if (game.state === 'PAUSE') {
+    // Structural restart intercept option inside pause context
+    gatekeeper.classList.add('hidden');
+    loadLevel(game.levelIndex);
+  } else {
+    bootIntoSystem(0, true);
+  }
+});
+
+continueBtn.addEventListener('click', () => {
+  if (game.state === 'PAUSE') {
+    // Structural resume option inside pause context
+    gatekeeper.classList.add('hidden');
+    game.state = 'PLAY';
+  } else {
+    const lastSavedLevel = parseInt(localStorage.getItem('mim_saved_stage') || "0");
+    bootIntoSystem(lastSavedLevel, false);
+  }
+});
+
+quitBtn.addEventListener('click', () => {
+  // Graceful functional drop back out to pristine title configuration state
+  game.state = 'MENU';
+  setupSaveMenu();
+});
+
 function bootIntoSystem(targetIndex, playIntroVideo) {
-  gatekeeper.style.opacity = '0';
-  setTimeout(() => gatekeeper.remove(), 600);
+  gatekeeper.classList.add('hidden');
   startAudio();
 
   if (playIntroVideo && videoElement && introContainer) {
@@ -283,7 +332,7 @@ function bootIntoSystem(targetIndex, playIntroVideo) {
       videoElement.play().catch(err => console.log(err));
     });
   } else {
-    if (introContainer) introContainer.remove();
+    if (introContainer) introContainer.classList.remove('active');
     loadLevel(targetIndex);
   }
 }
@@ -417,7 +466,20 @@ function setKey(code, down) {
     return;
   }
 
-  if (game.state === 'MENU' || player.isDying) return;
+  // Live structural toggle check for escape menu execution loops
+  if ((code === 'Escape' || code === 'KeyP') && (game.state === 'PLAY' || game.state === 'PAUSE')) {
+    if (game.state === 'PLAY') {
+      game.state = 'PAUSE';
+      setupSaveMenu();
+      gatekeeper.classList.remove('hidden');
+    } else {
+      game.state = 'PLAY';
+      gatekeeper.classList.add('hidden');
+    }
+    return;
+  }
+
+  if (game.state === 'MENU' || game.state === 'PAUSE' || player.isDying) return;
   if (anyKeyAdvance()) return;
   if (code === 'KeyM') { toggleMute(); return; }
 
@@ -463,7 +525,7 @@ function overlap(ax, ay, aw, ah, bx, by, bw, bh) {
 
 function update(dt) {
   updateAudioMixing(dt);
-  if (game.state === 'MENU' || game.state === 'INTRO') return;
+  if (game.state === 'MENU' || game.state === 'INTRO' || game.state === 'PAUSE') return;
   if (game.state === 'STORY') {
     game.storyTimer += dt;
     const due = Math.floor(game.storyTimer / 1.4);
