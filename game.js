@@ -133,9 +133,10 @@ const audioChannels = {
   ctx: null,
   nature: new Audio('nature.mp3'),
   music: new Audio('https://res.cloudinary.com/dcjst7sod/video/upload/v1781299773/Background_music_of_gameplay_uutorc.mp3'),
+  // Dedicated channels array for your brand new main menu theme destination
+  menuMusic: new Audio('https://res.cloudinary.com/dcjst7sod/video/upload/v1781467127/Main_Menu_Audio_ovq3r9.mp3'),
   initialized: false,
-  muted: false,
-  currentMusicTarget: 0.0
+  muted: false
 };
 
 function startAudio() {
@@ -150,6 +151,10 @@ function startAudio() {
   audioChannels.music.loop = true;
   audioChannels.music.volume = 0.0;
   audioChannels.music.play().catch(() => {});
+
+  audioChannels.menuMusic.loop = true;
+  audioChannels.menuMusic.volume = 0.0;
+  audioChannels.menuMusic.play().catch(() => {});
 
   audioChannels.initialized = true;
 }
@@ -212,26 +217,44 @@ function synthSFX(type) {
 
 function updateAudioMixing(dt) {
   if (!audioChannels.initialized || audioChannels.muted) return;
+  
+  let targetGameplay = 0.0;
+  let targetMenu = 0.0;
+  
   if (game.state === 'PLAY') {
-    audioChannels.currentMusicTarget = (game.levelIndex === 6 && player.x > 4200) ? 0.75 : 0.55; 
-  } else if (game.state === 'STORY' || game.state === 'PAUSE' || game.state === 'MENU') {
-    audioChannels.currentMusicTarget = 0.25; 
-  } else {
-    audioChannels.currentMusicTarget = 0.0;
+    targetGameplay = (game.levelIndex === 6 && player.x > 4200) ? 0.75 : 0.55;
+    targetMenu = 0.0;
+  } else if (game.state === 'STORY') {
+    targetGameplay = 0.25;
+    targetMenu = 0.0;
+  } else if (game.state === 'MENU' || game.state === 'PAUSE') {
+    targetGameplay = 0.0;
+    targetMenu = 0.65; // Boosted baseline mix for menu screen
   }
-  const fadeSpeed = 0.4; 
-  let v = audioChannels.music.volume;
-  if (v < audioChannels.currentMusicTarget) v = Math.min(audioChannels.currentMusicTarget, v + fadeSpeed * dt);
-  else if (v > audioChannels.currentMusicTarget) v = Math.max(audioChannels.currentMusicTarget, v - fadeSpeed * dt);
+
+  const fadeSpeed = 0.5;
+  
+  // Interpolates tracking mixing matrix volumes smoothly
+  let gVol = audioChannels.music.volume;
+  if (gVol < targetGameplay) gVol = Math.min(targetGameplay, gVol + fadeSpeed * dt);
+  else if (gVol > targetGameplay) gVol = Math.max(targetGameplay, gVol - fadeSpeed * dt);
+  
+  let mVol = audioChannels.menuMusic.volume;
+  if (mVol < targetMenu) mVol = Math.min(targetMenu, mVol + fadeSpeed * dt);
+  else if (mVol > targetMenu) mVol = Math.max(targetMenu, mVol - fadeSpeed * dt);
+
   if (game.audioDamp < 1.0) game.audioDamp = Math.min(1.0, game.audioDamp + 1.8 * dt);
-  audioChannels.music.volume = v * game.audioDamp;
+  
+  audioChannels.music.volume = gVol * game.audioDamp;
+  audioChannels.menuMusic.volume = mVol * game.audioDamp;
 }
 
 function toggleMute() {
   audioChannels.muted = !audioChannels.muted;
   const masterSwitch = audioChannels.muted ? 0 : 1;
   audioChannels.nature.volume = 0.35 * masterSwitch;
-  audioChannels.music.volume = (game.state === 'PLAY' ? 0.55 : 0.25) * masterSwitch;
+  audioChannels.music.volume = (game.state === 'PLAY' ? 0.55 : 0.0) * masterSwitch;
+  audioChannels.menuMusic.volume = ((game.state === 'MENU' || game.state === 'PAUSE') ? 0.65 : 0.0) * masterSwitch;
 }
 
 // ---------- interactive menu select & cache save system ----------
@@ -758,7 +781,7 @@ function update(dt) {
 }
 
 function render() {
-  // Performance Patch: Canvas-driven frame capture for 8GB devices to eradicate lag completely
+  // Canvas-driven hardware optimization logic draws menu frames smoothly on 8GB tabs
   if (game.state === 'MENU' || game.state === 'PAUSE') {
     ctx.fillStyle = '#05090f';
     ctx.fillRect(0, 0, W, H);
@@ -773,7 +796,7 @@ function render() {
       ctx.drawImage(menuVideoBg, xOff, yOff, vWidth * scale, vHeight * scale);
       ctx.restore();
     }
-    return; // Fast escape out of physics render stack
+    return; 
   }
 
   if (game.state === 'INTRO') return;
