@@ -27,7 +27,7 @@
   /* Cinematic Intro Video Overlay Container */
   #intro-container {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    z-index: 999; background: #05090f; transition: opacity 1.2s ease-in-out;
+    z-index: 1001; background: #05090f; transition: opacity 1.2s ease-in-out;
     pointer-events: none; opacity: 0;
   }
   #intro-container.active { pointer-events: auto; opacity: 1; }
@@ -39,44 +39,68 @@
     animation: pulseText 2s infinite ease-in-out; pointer-events: none;
   }
 
-  /* Artistic Main Menu System Overlay */
+  /* Portal 2-Inspired Immersive Menu System Overlay */
   #gatekeeper {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: #05090f; z-index: 1000; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; transition: opacity 0.6s ease-in-out;
-    user-select: none; -webkit-user-select: none;
+    background: #05090f; z-index: 1000; transition: opacity 0.5s ease-in-out;
+    user-select: none; -webkit-user-select: none; display: block;
   }
-  #gatekeeper h1 {
-    color: #dfe8f5; font: 32px Georgia, serif; letter-spacing: 8px;
-    margin-bottom: 40px; opacity: 0.9; text-shadow: 0 0 20px rgba(157,184,224,0.15);
+  #gatekeeper.hidden { opacity: 0; pointer-events: none; }
+
+  #menu-video-bg {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: 1; opacity: 0.85;
   }
-  .menu-layout { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+  .menu-content-wrapper {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 2; display: flex; flex-direction: column;
+    justify-content: center; align-items: flex-end; /* Right-Aligned layout */
+    padding-right: 8%; padding-left: 5%;
+  }
+
+  .menu-branding {
+    align-self: flex-start; position: absolute; top: 8%; left: 6%;
+  }
+  .menu-branding h1 {
+    color: #dfe8f5; font: bold 38px Georgia, serif; letter-spacing: 6px;
+    margin-bottom: 6px; opacity: 0.95; text-shadow: 0 0 24px rgba(157,184,224,0.2);
+  }
+  .menu-branding p {
+    color: #9db8e0; font: italic 12px Georgia, serif; letter-spacing: 2px; opacity: 0.6;
+  }
+
+  .menu-layout { 
+    display: flex; flex-direction: column; align-items: flex-end; gap: 14px; 
+    margin-top: 40px;
+  }
   
   .menu-btn {
-    background: transparent; border: 1px solid rgba(157,184,224,0.25); color: #dfe8f5;
-    font: 11px Georgia, serif; letter-spacing: 3px; padding: 14px 34px; min-width: 200px;
-    cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); text-align: center;
+    background: transparent; border: none; color: #9db8e0;
+    font: normal 20px Georgia, serif; letter-spacing: 2px; padding: 10px 0;
+    cursor: pointer; transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1); 
+    text-align: right; position: relative; opacity: 0.75;
   }
   .menu-btn:hover {
-    background: rgba(157,184,224,0.12); border-color: rgba(157,184,224,0.6);
-    box-shadow: 0 0 15px rgba(157,184,224,0.1);
+    color: #dfe8f5; opacity: 1; padding-right: 15px;
+    text-shadow: 0 0 15px rgba(157,184,224,0.4);
   }
   
   #level-select-panel {
-    margin-top: 40px; display: flex; flex-direction: column; align-items: center; opacity: 0;
-    transition: opacity 0.5s ease;
+    margin-top: 35px; display: flex; flex-direction: column; align-items: flex-end; opacity: 0;
+    transition: opacity 0.5s ease; width: 100%; max-width: 450px;
   }
   #level-select-panel p {
-    color: #9db8e0; font: 9px Georgia, serif; letter-spacing: 4px; margin-bottom: 14px; opacity: 0.5;
+    color: #9db8e0; font: bold 10px Georgia, serif; letter-spacing: 3px; margin-bottom: 14px; opacity: 0.5;
   }
-  .nodes-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 450px; }
+  .nodes-row { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; max-width: 450px; }
   
   .node-btn {
-    background: transparent; border: 1px solid rgba(157,184,224,0.15); color: #9db8e0;
-    font: 11px Georgia, serif; padding: 8px 16px; cursor: pointer; transition: all 0.2s;
+    background: rgba(5, 9, 15, 0.4); border: 1px solid rgba(157,184,224,0.15); color: #9db8e0;
+    font: 12px Georgia, serif; padding: 8px 14px; cursor: pointer; transition: all 0.2s;
   }
   .node-btn:hover {
-    background: rgba(157,184,224,0.2); color: #dfe8f5; border-color: rgba(157,184,224,0.5);
+    background: rgba(157,184,224,0.2); color: #dfe8f5; border-color: rgba(157,184,224,0.6);
   }
 
   #hud {
@@ -105,14 +129,24 @@
 <body>
 
 <div id="gatekeeper">
-  <h1>MIND IN MOTION</h1>
-  <div class="menu-layout">
-    <button class="menu-btn" id="menu-new-btn">NEW JOURNEY</button>
-    <button class="menu-btn" id="menu-cont-btn" style="display: none;">CONTINUE</button>
-  </div>
-  <div id="level-select-panel">
-    <p>SELECT UNLOCKED CHAPTER</p>
-    <div class="nodes-row" id="nodes-container"></div>
+  <video id="menu-video-bg" src="https://res.cloudinary.com/dcjst7sod/video/upload/v1781461668/Main_Menu_dg9dhl.mp4" loop muted playsinline autoplay></video>
+  
+  <div class="menu-content-wrapper">
+    <div class="menu-branding">
+      <h1 id="menu-title-text">MIND IN MOTION</h1>
+      <p id="menu-subtitle-text">An Atmospheric Odyssey</p>
+    </div>
+
+    <div class="menu-layout">
+      <button class="menu-btn" id="menu-new-btn">NEW JOURNEY</button>
+      <button class="menu-btn" id="menu-cont-btn" style="display: none;">CONTINUE</button>
+      <button class="menu-btn" id="menu-quit-btn" style="display: none;">QUIT TO TITLE</button>
+    </div>
+    
+    <div id="level-select-panel">
+      <p>SELECT UNLOCKED CHAPTER</p>
+      <div class="nodes-row" id="nodes-container"></div>
+    </div>
   </div>
 </div>
 
@@ -122,7 +156,7 @@
 </div>
 
 <canvas id="c"></canvas>
-<div id="hud">ARROWS / WASD &nbsp;·&nbsp; SPACE TO JUMP &nbsp;·&nbsp; R RESTART · M MUTE</div>
+<div id="hud">A-D / ARROWS &nbsp;·&nbsp; SPACE TO JUMP &nbsp;·&nbsp; ESC / P TO PAUSE &nbsp;·&nbsp; R RESTART</div>
 <div class="btn" id="btnL">&#9664;</div>
 <div class="btn" id="btnR">&#9654;</div>
 <div class="btn" id="btnJ">&#9650;</div>
