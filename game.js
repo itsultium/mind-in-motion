@@ -38,6 +38,16 @@ bg.debris.src = 'bg_debris.png';   bg.debris.onload = () => bg.debrisOk = true;
 bg.occl.src = 'bg_occl_thin.png';   bg.occl.onload = () => bg.occlOk = true;
 bg.shard.src = 'bg_occl_shard.png'; bg.shard.onload = () => bg.shardOk = true;
 
+// ---------- chapter VII beyond world backgrounds ----------
+const bgCh7 = {
+  sky: new Image(), hills: new Image(), mono: new Image(), ruins: new Image(),
+  skyOk: false, hillsOk: false, monoOk: false, ruinsOk: false
+};
+bgCh7.sky.src   = 'bg_sky_ch7.jpg';   bgCh7.sky.onload   = () => bgCh7.skyOk   = true;
+bgCh7.hills.src = 'bg_hills_ch7.png'; bgCh7.hills.onload = () => bgCh7.hillsOk = true;
+bgCh7.mono.src  = 'bg_mono_ch7.png';  bgCh7.mono.onload  = () => bgCh7.monoOk  = true;
+bgCh7.ruins.src = 'bg_ruins_ch7.png'; bgCh7.ruins.onload = () => bgCh7.ruinsOk = true;
+
 // ---------- chapter illustration preloader ----------
 const cardImages = [];
 const cardImagesOk = Array(7).fill(false);
@@ -86,7 +96,38 @@ const player = {
 const cam = { x: 0, y: 0, zoom: 1.0, targetZoom: 1.0 };
 const particles = [];
 const ambientParticles = [];
-const enemies = [];        
+const enemies = [];
+
+// ---------- asteroid system (chapters 1-6, dimension collapse) ----------
+const asteroids = [];
+const ASTEROID_CONFIG = [
+  { density: 0.4, speedMin: 180, speedMax: 260, sizeMin: 2, sizeMax: 4,  alpha: 0.25 }, // Ch1 - barely there
+  { density: 0.7, speedMin: 200, speedMax: 300, sizeMin: 2, sizeMax: 5,  alpha: 0.35 }, // Ch2
+  { density: 1.2, speedMin: 240, speedMax: 360, sizeMin: 3, sizeMax: 6,  alpha: 0.45 }, // Ch3
+  { density: 1.8, speedMin: 280, speedMax: 420, sizeMin: 3, sizeMax: 8,  alpha: 0.55 }, // Ch4
+  { density: 0.5, speedMin: 160, speedMax: 240, sizeMin: 2, sizeMax: 4,  alpha: 0.20 }, // Ch5 - clarity, pulls back
+  { density: 2.8, speedMin: 340, speedMax: 520, sizeMin: 4, sizeMax: 10, alpha: 0.70 }, // Ch6 - heaviest
+];
+
+function spawnAsteroid() {
+  if (game.levelIndex >= 6) return; // No asteroids in Ch7
+  const cfg = ASTEROID_CONFIG[game.levelIndex];
+  const speed = cfg.speedMin + Math.random() * (cfg.speedMax - cfg.speedMin);
+  const size  = cfg.sizeMin  + Math.random() * (cfg.sizeMax  - cfg.sizeMin);
+  const angle = (0.45 + Math.random() * 0.25); // ~25-40 degrees, falling right-to-left ish
+  asteroids.push({
+    x: Math.random() * W * 1.4,
+    y: -20 - Math.random() * 80,
+    vx: -Math.cos(angle) * speed * (0.4 + Math.random() * 0.3),
+    vy:  Math.sin(angle) * speed,
+    size,
+    alpha: cfg.alpha * (0.6 + Math.random() * 0.4),
+    trail: [],
+    dead: false
+  });
+}
+
+let asteroidSpawnTimer = 0;
 
 // ---------- programmatic web audio system ----------
 const audioChannels = {
@@ -462,6 +503,27 @@ function update(dt) {
   if (player.x > 550) game.targetBloom = 1.0;
   game.bloom += (game.targetBloom - game.bloom) * 1.8 * dt;
 
+  // ---------- asteroid system update ----------
+  if (game.levelIndex < 6) {
+    const cfg = ASTEROID_CONFIG[game.levelIndex];
+    asteroidSpawnTimer += dt;
+    const spawnInterval = 1.2 / cfg.density;
+    if (asteroidSpawnTimer > spawnInterval) {
+      spawnAsteroid();
+      asteroidSpawnTimer = 0;
+    }
+    for (let i = asteroids.length - 1; i >= 0; i--) {
+      const a = asteroids[i];
+      a.trail.push({ x: a.x, y: a.y });
+      if (a.trail.length > 18) a.trail.shift();
+      a.x += a.vx * dt;
+      a.y += a.vy * dt;
+      if (a.y > H + 60 || a.x < -200) { asteroids.splice(i, 1); }
+    }
+  } else {
+    asteroids.length = 0;
+  }
+
   const L = game.level;
 
   for (const [sx, sy, sw, sh, spower] of (L.springs || [])) {
@@ -632,29 +694,80 @@ function render() {
   if (game.state === 'STORY') { renderStory(); return; }
   if (game.state === 'END') { renderEnd(); return; }
 
-  if (bg.skyOk) {
-    const s = Math.max(W / bg.sky.width, H / bg.sky.height);
-    ctx.drawImage(bg.sky, (W - bg.sky.width * s) / 2, (H - bg.sky.height * s) / 2, bg.sky.width * s, bg.sky.height * s);
+  // ---------- background rendering ----------
+  const isBeyond = game.levelIndex === 6;
+
+  if (isBeyond) {
+    // Chapter VII — new world sky
+    if (bgCh7.skyOk) {
+      const s = Math.max(W / bgCh7.sky.width, H / bgCh7.sky.height);
+      ctx.drawImage(bgCh7.sky, (W - bgCh7.sky.width * s) / 2, (H - bgCh7.sky.height * s) / 2, bgCh7.sky.width * s, bgCh7.sky.height * s);
+    } else {
+      ctx.fillStyle = '#020d14'; ctx.fillRect(0, 0, W, H);
+    }
   } else {
-    ctx.fillStyle = '#0a1228'; ctx.fillRect(0, 0, W, H);
+    if (bg.skyOk) {
+      const s = Math.max(W / bg.sky.width, H / bg.sky.height);
+      ctx.drawImage(bg.sky, (W - bg.sky.width * s) / 2, (H - bg.sky.height * s) / 2, bg.sky.width * s, bg.sky.height * s);
+    } else {
+      ctx.fillStyle = '#0a1228'; ctx.fillRect(0, 0, W, H);
+    }
   }
 
   const mood = game.level.mood || { veil: [105,125,148], grade: null, darken: 0 };
   const [vr, vg, vb] = mood.veil;
 
-  layer(bg.hills, bg.hillsOk, 0.15, 0.60, 1.0);
-  ctx.fillStyle = `rgba(${vr}, ${vg}, ${vb}, 0.25)`; ctx.fillRect(0, 0, W, H);
-  layer(bg.mono, bg.monoOk, 0.35, 0.70, 1.0);
-  ctx.fillStyle = `rgba(${vr}, ${vg}, ${vb}, 0.15)`; ctx.fillRect(0, 0, W, H);
-  layer(bg.ruins, bg.ruinsOk, 0.55, 0.50, 1.0);
-  ctx.fillStyle = `rgba(${vr}, ${vg}, ${vb}, 0.06)`; ctx.fillRect(0, 0, W, H);
+  if (isBeyond) {
+    // Ch7 parallax layers
+    layer(bgCh7.hills, bgCh7.hillsOk, 0.15, 0.62, 1.0);
+    ctx.fillStyle = `rgba(0, 160, 160, 0.12)`; ctx.fillRect(0, 0, W, H);
+    layer(bgCh7.mono,  bgCh7.monoOk,  0.35, 0.72, 1.0);
+    ctx.fillStyle = `rgba(0, 140, 150, 0.08)`; ctx.fillRect(0, 0, W, H);
+    layer(bgCh7.ruins, bgCh7.ruinsOk, 0.55, 0.52, 1.0);
+    ctx.fillStyle = `rgba(0, 100, 120, 0.05)`; ctx.fillRect(0, 0, W, H);
+  } else {
+    layer(bg.hills, bg.hillsOk, 0.15, 0.60, 1.0);
+    ctx.fillStyle = `rgba(${vr}, ${vg}, ${vb}, 0.25)`; ctx.fillRect(0, 0, W, H);
+    layer(bg.mono, bg.monoOk, 0.35, 0.70, 1.0);
+    ctx.fillStyle = `rgba(${vr}, ${vg}, ${vb}, 0.15)`; ctx.fillRect(0, 0, W, H);
+    layer(bg.ruins, bg.ruinsOk, 0.55, 0.50, 1.0);
+    ctx.fillStyle = `rgba(${vr}, ${vg}, ${vb}, 0.06)`; ctx.fillRect(0, 0, W, H);
+  }
 
   fogDrift();
   lightShafts();
 
   layer(bg.shard, bg.shardOk, 0.75, 0.95, 2.8);
-  layer(bg.occl, bg.occlOk, 0.85, 1.05, 2.2);
+  layer(bg.occl,  bg.occlOk,  0.85, 1.05, 2.2);
   layer(bg.debris, bg.debrisOk, 1.25, 0.35, 1.5);
+
+  // ---------- asteroid draw (ch1-6, behind gameplay) ----------
+  if (asteroids.length > 0) {
+    ctx.save();
+    for (const a of asteroids) {
+      if (a.trail.length < 2) continue;
+      // Trail
+      for (let t = 0; t < a.trail.length - 1; t++) {
+        const frac = t / a.trail.length;
+        ctx.beginPath();
+        ctx.moveTo(a.trail[t].x, a.trail[t].y);
+        ctx.lineTo(a.trail[t + 1].x, a.trail[t + 1].y);
+        ctx.strokeStyle = `rgba(255, ${140 + Math.floor(frac * 80)}, 40, ${a.alpha * frac * 0.7})`;
+        ctx.lineWidth = a.size * frac * 0.9;
+        ctx.stroke();
+      }
+      // Core fireball
+      const grd = ctx.createRadialGradient(a.x, a.y, 0, a.x, a.y, a.size * 2.5);
+      grd.addColorStop(0, `rgba(255, 240, 180, ${a.alpha})`);
+      grd.addColorStop(0.4, `rgba(255, 140, 30, ${a.alpha * 0.7})`);
+      grd.addColorStop(1, `rgba(255, 80, 0, 0)`);
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, a.size * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+    }
+    ctx.restore();
+  }
 
   ctx.save();
   const pulseScale = 1.0 + 0.4 * Math.abs(Math.sin(performance.now() / 380));
@@ -671,26 +784,35 @@ function render() {
   ctx.save();
   ctx.translate(W / 2, H / 2); ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
 
-  // ---------- CHAPTER VII CEREBRAL SILHOUETTE PRESENCE ----------
+  // ---------- CHAPTER VII BEYOND WORLD PRESENCE ----------
   if (game.levelIndex === 6) {
     ctx.save();
-    ctx.fillStyle = 'rgba(6, 11, 23, 0.92)';
-    ctx.shadowColor = 'rgba(157, 184, 224, 0.12)';
-    ctx.shadowBlur = 60;
+    ctx.fillStyle = 'rgba(0, 8, 18, 0.88)';
+    ctx.shadowColor = 'rgba(0, 210, 210, 0.18)';
+    ctx.shadowBlur = 80;
     
     ctx.beginPath();
-    ctx.arc(5000, -20, 240, 0, Math.PI * 2);
-    ctx.arc(5180, 20, 210, 0, Math.PI * 2);
-    ctx.arc(4840, 40, 180, 0, Math.PI * 2);
-    ctx.arc(5020, 160, 150, 0, Math.PI * 2); 
+    ctx.arc(6200, -30, 240, 0, Math.PI * 2);
+    ctx.arc(6380, 10, 210, 0, Math.PI * 2);
+    ctx.arc(6040, 30, 180, 0, Math.PI * 2);
+    ctx.arc(6220, 150, 150, 0, Math.PI * 2); 
     ctx.fill();
     
     ctx.beginPath();
-    ctx.moveTo(4950, 160);
-    ctx.quadraticCurveTo(4930, 300, 4800, 400);
-    ctx.lineTo(5100, 400);
-    ctx.quadraticCurveTo(5020, 280, 5050, 160);
+    ctx.moveTo(6150, 150);
+    ctx.quadraticCurveTo(6130, 290, 6000, 380);
+    ctx.lineTo(6300, 380);
+    ctx.quadraticCurveTo(6220, 270, 6250, 150);
     ctx.fill();
+
+    // Cyan rim glow on brain
+    ctx.shadowColor = 'rgba(0, 230, 230, 0.35)';
+    ctx.shadowBlur = 40;
+    ctx.strokeStyle = 'rgba(0, 200, 200, 0.12)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(6200, -30, 242, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -752,15 +874,18 @@ function render() {
   for (let e of enemies) {
     ctx.save();
     ctx.translate(e.x + e.w / 2, e.y + e.h);
+    const beyondChapter = game.levelIndex === 6;
     if (e.isAggro) {
-      ctx.fillStyle = 'rgba(235, 95, 95, 0.22)';
+      ctx.fillStyle = beyondChapter ? 'rgba(0, 220, 220, 0.22)' : 'rgba(235, 95, 95, 0.22)';
       ctx.beginPath();
       ctx.arc(0, -e.h / 2, e.h * 0.9, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.fillStyle = e.type === 'stalker' ? '#08040f' : '#030712';
     ctx.fillRect(-e.w / 2, -e.h, e.w, e.h);
-    ctx.fillStyle = e.isAggro ? 'rgba(235, 95, 95, 0.9)' : 'rgba(157, 184, 224, 0.45)';
+    ctx.fillStyle = e.isAggro
+      ? (beyondChapter ? 'rgba(0, 230, 230, 0.95)' : 'rgba(235, 95, 95, 0.9)')
+      : 'rgba(157, 184, 224, 0.45)';
     ctx.fillRect(e.dir >= 0 ? e.w * 0.08 : -e.w * 0.32, -e.h * 0.78, 5, 5);
     ctx.restore();
   }
@@ -827,7 +952,7 @@ function renderEnd() {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#dfe8f5';
   ctx.font = '30px Georgia, serif';
-  ctx.fillText('THE SKY HAS OPENED UP', W / 2, H * 0.38);
+  ctx.fillText('HE CROSSED INTO THE BEYOND', W / 2, H * 0.38);
   ctx.fillStyle = 'rgba(223,232,245,0.75)';
   ctx.font = '15px Georgia, serif';
   const line = game.deaths === 0
