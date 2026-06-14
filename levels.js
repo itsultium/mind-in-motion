@@ -193,7 +193,6 @@ const LEVELS = [
       [6750, 900, 1900, 300], [8650, 0, 40, 1200]
     ],
     hazards: [
-      // FIXED: Broken 900px hazard line split into 2 clearable segments with a center landing pad
       [3450, 642, 220, 8], 
       [4100, 642, 220, 8], 
       [7100, 892, 200, 8], 
@@ -216,7 +215,7 @@ const LEVELS = [
     width: 5200,
     bottom: 900,
     spawn: { x: 200, y: 500 },
-    checkpoints: [], 
+    checkpoints: [{ x: 200, y: 500 }, { x: 2550, y: 320 }], // Catch-fall safety metrics matrix added
     exit: { x: 4850, y: 380, w: 40, h: 120 },
     springs: [], 
     enemies: [],                             
