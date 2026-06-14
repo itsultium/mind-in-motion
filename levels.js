@@ -266,38 +266,53 @@ const LEVELS = [
     ]
   },
   {
-    name: "ASCENSION",
+    name: "BEYOND",
     subtitle: "CHAPTER VII",
     mood: { 
-      veil: [240, 245, 250], 
-      grade: "rgba(255, 255, 255, 0.20)", 
-      darken: 0 
+      veil: [0, 180, 180], 
+      grade: "rgba(0, 40, 60, 0.18)", 
+      darken: 0.08,
+      isBeyond: true
     },
     story: [
-      "The horizon is no longer a border.",
-      "Every step is light. Every shadow is quiet.",
-      "Run. The sky has opened up."
+      "The world he knew collapsed behind him.",
+      "Something ancient and alive waited on the other side.",
+      "He didn't understand it. He ran toward it anyway."
     ],
-    width: 6000, 
-    bottom: 900, 
-    spawn: { x: 200, y: 500 },
-    checkpoints: [], 
-    exit: { x: 5600, y: 160, w: 40, h: 120 },
+    width: 7200, 
+    bottom: 1000, 
+    spawn: { x: 160, y: 600 },
+    checkpoints: [
+      { x: 3000, y: 540 }
+    ], 
+    exit: { x: 6900, y: 200, w: 40, h: 120 },
     springs: [
-      [1100, 596, 80, 4, 1450],
-      [2400, 446, 80, 4, 1500],
-      [3800, 346, 80, 4, 1550]
+      [1800, 746, 70, 6, 1300],
+      [3600, 596, 70, 6, 1380],
+      [5200, 446, 70, 6, 1450]
     ],
-    enemies: [], 
+    enemies: [
+      { x: 2200, y: 590, minX: 1900, maxX: 2700, speed: 130, dir: 1, w: 26, h: 50, type: 'stalker' },
+      { x: 4800, y: 490, minX: 4400, maxX: 5500, speed: 150, dir: -1, w: 26, h: 50, type: 'stalker' }
+    ], 
     platforms: [
-      [0,    600, 1200, 300],
-      [1100, 600, 80, 40],
-      [1500, 350, 400, 30],
-      [2400, 450, 80, 40],
-      [2800, 200, 500, 30],
-      [3800, 350, 80, 40],
-      [4400, 250, 1400, 650]
+      [0,    700, 1200, 300],
+      [1400, 640, 280, 30],
+      [1800, 750, 70,  200],
+      [2200, 640, 600, 30],
+      [3000, 580, 500, 300],
+      [3600, 600, 70,  200],
+      [4100, 520, 260, 30],
+      [4600, 460, 260, 30],
+      [5200, 450, 70,  200],
+      [5600, 380, 340, 30],
+      [6100, 280, 260, 30],
+      [6500, 260, 700, 740]
     ],
-    hazards: []
+    hazards: [
+      [1500, 632, 220, 8],
+      [4200, 512, 200, 8],
+      [5700, 372, 180, 8]
+    ]
   }
 ];
