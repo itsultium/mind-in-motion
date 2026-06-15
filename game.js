@@ -47,12 +47,12 @@ bgCh7.sky.src   = 'https://res.cloudinary.com/dcjst7sod/image/upload/v1781468294
 bgCh7.sky.onload   = () => bgCh7.skyOk   = true;
 bgCh7.hills.src = 'https://res.cloudinary.com/dcjst7sod/image/upload/v1781468289/alien_forest_silhouette_on_black__yvzhkw.jpg';
 bgCh7.hills.onload = () => bgCh7.hillsOk = true;
-bgCh7.mono.src  = 'ancient_stone_monoliths_with_glowing.jpg';
+bgCh7.mono.src  = 'https://res.cloudinary.com/dcjst7sod/image/upload/v1781542147/Level_7_vfrroz.jpg'; // Verified Verbatim Monolith Asset Link Placement
 bgCh7.mono.onload  = () => bgCh7.monoOk  = true;
 bgCh7.ruins.src = 'https://res.cloudinary.com/dcjst7sod/image/upload/v1781468294/floating_ruins_and_broken_architecture_n3nn4b.jpg';
 bgCh7.ruins.onload = () => bgCh7.ruinsOk = true;
 
-// ---------- illustration preloader array expansion ----------
+// ---------- chapter illustration preloader ----------
 const cardImages = [];
 const cardImagesOk = Array(16).fill(false);
 for (let i = 0; i < 16; i++) {
@@ -181,7 +181,7 @@ function synthSFX(type) {
 
 function updateAudioMixing(dt) {
   if (!audioChannels.initialized || audioChannels.muted) return;
-  let targetGameplay = 0.0, targetMenu = 0.0;
+  let targetGameplay = 0.0; let targetMenu = 0.0;
   if (game.state === 'PLAY') {
     targetGameplay = (game.levelIndex >= 6) ? 0.75 : 0.55; targetMenu = 0.0;
   } else if (game.state === 'STORY') {
@@ -295,7 +295,6 @@ function loadLevel(i) {
   localStorage.setItem('mim_saved_stage', i);
   localStorage.setItem('mim_unlocked_stage', Math.max(parseInt(localStorage.getItem('mim_unlocked_stage') || "0"), i));
   
-  // Clean projectile array configurations dynamically on stack shift
   projectiles.length = 0;
   liveSpawners.length = 0;
   if (game.level.spawners) {
@@ -374,19 +373,37 @@ function update(dt) {
   player.squashX += (1 - player.squashX) * 10 * dt; player.squashY += (1 - player.squashY) * 10 * dt;
 
   if (player.isDying) {
-    player.deathTimer -= dt; if (player.deathTimer <= 0) respawn();
+    player.deathTimer -= dt; 
+    if (player.deathTimer <= 0) {
+      // PERMADEATH matrix enforcement hook: >6 failures hard-wipes save state back to stage 0
+      if (game.deaths > 6) {
+        game.deaths = 0;
+        loadLevel(0); 
+      } else {
+        respawn();
+      }
+    }
     for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.t += dt; if (p.t > p.life) { particles.splice(i, 1); continue; } p.x += p.vx * dt; p.y += p.vy * dt; }
     return;
   }
 
   game.phaseTimer += dt; if (player.x > 550) game.targetBloom = 1.0; game.bloom += (game.targetBloom - game.bloom) * 1.8 * dt;
 
-  // ---------- dynamic shuriken spawner update matrix ----------
+  // ---------- unpredictable dynamic projectile trajectory matrix ----------
   for (let s of liveSpawners) {
     s.timer += dt;
     if (s.timer >= s.rate) {
       s.timer = 0;
-      projectiles.push({ x: s.x, y: s.y, vx: s.vx, vy: s.vy, w: 22, h: 22, angle: 0, spin: 12 });
+      // Staggers velocities dynamically and injects a vertical axis sinewave offset
+      let velocityThrottler = 0.85 + Math.random() * 0.35;
+      let waveVariance = Math.sin(performance.now() / 180) * 110;
+      projectiles.push({ 
+        x: s.x, 
+        y: s.y + (Math.random() - 0.5) * 20, 
+        vx: s.vx * velocityThrottler, 
+        vy: s.vy + waveVariance * 0.15, 
+        w: 22, h: 22, angle: 0, spin: 14 + Math.random() * 6 
+      });
     }
   }
   for (let i = projectiles.length - 1; i >= 0; i--) {
@@ -482,7 +499,7 @@ function render() {
       ctx.drawImage(bgCh7.sky, (W - bgCh7.sky.width * s) / 2, (H - bgCh7.sky.height * s) / 2, bgCh7.sky.width * s, bgCh7.sky.height * s);
     } else { ctx.fillStyle = '#010611'; ctx.fillRect(0, 0, W, H); }
     layer(bgCh7.hills, bgCh7.hillsOk, 0.15, 0.65, 1.0);
-    layer(bgCh7.mono,  bgCh7.monoOk,  0.35, 0.55, 1.4); // Local monolith asset verbatim link layer
+    layer(bgCh7.mono,  bgCh7.monoOk,  0.35, 0.55, 1.4); // Monolith layout verbatim link layer placement
     layer(bgCh7.ruins, bgCh7.ruinsOk, 0.55, 0.70, 1.0);
   } else {
     if (bg.skyOk) { const s = Math.max(W / bg.sky.width, H / bg.sky.height); ctx.drawImage(bg.sky, (W - bg.sky.width * s) / 2, (H - bg.sky.height * s) / 2, bg.sky.width * s, bg.sky.height * s); } 
@@ -516,7 +533,7 @@ function render() {
   const L = game.level;
   for (let i = 0; i < L.platforms.length; i++) {
     const [px, py, pw, ph] = L.platforms[i];
-    ctx.fillStyle = isCosmicDimension ? '#030d1a' : '#060b17'; ctx.fillRect(px, py, pw, ph);
+    ctx.fillStyle = isCosmicDimension ? '#03101d' : '#060b17'; ctx.fillRect(px, py, pw, ph);
     ctx.fillStyle = isCosmicDimension ? 'rgba(0, 255, 220, 0.45)' : 'rgba(157,184,224,0.20)'; ctx.fillRect(px, py, pw, 3);
   }
   for (const [sx, sy, sw, sh] of (L.springs || [])) { ctx.fillStyle = '#15243f'; ctx.fillRect(sx, sy, sw, sh); ctx.fillStyle = 'rgba(223, 232, 245, 0.6)'; ctx.fillRect(sx, sy, sw, 2); }
@@ -537,6 +554,29 @@ function render() {
 
   if (!player.isDying) drawPlayer();
   ctx.restore();
+
+  // ---------- UPPER CORNER HUD STABILITY CORE GAUGES ----------
+  if (game.state === 'PLAY') {
+    ctx.save();
+    const hudX = 24, hudY = 24, maxBarWidth = 200, barHeight = 10;
+    
+    // Outer bracket backdrop
+    ctx.fillStyle = 'rgba(5, 12, 22, 0.6)';
+    ctx.fillRect(hudX, hudY, maxBarWidth, barHeight);
+    ctx.strokeStyle = 'rgba(157, 184, 224, 0.25)';
+    ctx.strokeRect(hudX, hudY, maxBarWidth, barHeight);
+    
+    // Calculates lives scale (hard cap is 6)
+    let dynamicRatio = Math.max(0, (6 - game.deaths) / 6);
+    let fillWidth = maxBarWidth * dynamicRatio;
+    
+    // Cyan bio bar fill
+    ctx.fillStyle = 'rgba(0, 255, 220, 0.85)';
+    ctx.shadowColor = 'rgba(0, 255, 220, 0.6)';
+    ctx.shadowBlur = 8;
+    ctx.fillRect(hudX, hudY, fillWidth, barHeight);
+    ctx.restore();
+  }
 
   const gm = game.level.mood;
   if (gm && gm.grade) { ctx.fillStyle = gm.grade; ctx.fillRect(0, 0, W, H); }
