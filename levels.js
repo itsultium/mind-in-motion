@@ -140,7 +140,7 @@ const LEVELS = [
     story: ["The world he knew collapsed behind him.", "Something ancient and alive waited on the other side.", "He didn't understand it. He ran toward it anyway."],
     width: 7400, bottom: 1000, spawn: { x: 160, y: 620 },
     checkpoints: [{ x: 3200, y: 560 }],
-    exit: { x: 6880, y: 400, w: 40, h: 120 },
+    exit: { x: 6880, y: 440, w: 40, h: 120 },
     springs: [[2000, 796, 70, 6, 1200]],
     enemies: [
       { x: 1800, y: 650, minX: 1400, maxX: 2400, speed: 110, dir: 1, w: 26, h: 50, type: 'patrol' },
@@ -161,7 +161,7 @@ const LEVELS = [
     story: ["The ruins here glowed from within.", "He had never seen darkness that breathed.", "He kept moving. The light followed."],
     width: 7800, bottom: 1000, spawn: { x: 140, y: 600 },
     checkpoints: [{ x: 2800, y: 520 }, { x: 5600, y: 460 }],
-    exit: { x: 7550, y: 420, w: 40, h: 120 },
+    exit: { x: 7340, y: 380, w: 40, h: 120 },
     springs: [[1600, 746, 70, 6, 1180], [4200, 696, 70, 6, 1220]],
     enemies: [
       { x: 1400, y: 640, minX: 1000, maxX: 2000, speed: 120, dir: 1, w: 26, h: 50, type: 'patrol' },
@@ -183,7 +183,7 @@ const LEVELS = [
     story: ["They stood perfectly still.", "Until he moved.", "Then the air became dangerous."],
     width: 8000, bottom: 1000, spawn: { x: 150, y: 600 },
     checkpoints: [{ x: 3400, y: 540 }, { x: 6000, y: 480 }],
-    exit: { x: 7750, y: 440, w: 40, h: 120 },
+    exit: { x: 7440, y: 360, w: 40, h: 120 },
     springs: [[2800, 746, 70, 6, 1200]],
     enemies: [
       { x: 1600, y: 630, minX: 1400, maxX: 1800, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' },
@@ -206,7 +206,7 @@ const LEVELS = [
     story: ["Something faster appeared in the shadows.", "It didn't patrol. It charged.", "He learned to listen for the sound of acceleration."],
     width: 8200, bottom: 1000, spawn: { x: 150, y: 580 },
     checkpoints: [{ x: 3600, y: 520 }, { x: 6200, y: 460 }],
-    exit: { x: 7950, y: 440, w: 40, h: 120 },
+    exit: { x: 7740, y: 360, w: 40, h: 120 },
     springs: [[1800, 696, 70, 6, 1200], [5000, 646, 70, 6, 1250]],
     enemies: [
       { x: 1400, y: 610, minX: 800, maxX: 2200, speed: 80, dir: 1, w: 26, h: 50, type: 'charger' },
@@ -229,7 +229,7 @@ const LEVELS = [
     story: ["The architecture grew vertical.", "He learned what it meant to fall with intent.", "Up was the only direction that mattered."],
     width: 7600, bottom: 1100, spawn: { x: 150, y: 700 },
     checkpoints: [{ x: 2800, y: 560 }, { x: 5200, y: 380 }],
-    exit: { x: 7300, y: 200, w: 40, h: 120 },
+    exit: { x: 6440, y: 240, w: 40, h: 120 },
     springs: [[1400, 846, 70, 6, 1300], [3600, 696, 70, 6, 1350], [5600, 496, 70, 6, 1400]],
     enemies: [
       { x: 2000, y: 620, minX: 1600, maxX: 2600, speed: 130, dir: 1, w: 26, h: 50, type: 'stalker' },
@@ -253,7 +253,7 @@ const LEVELS = [
     story: ["The forest was alive and hostile.", "Every shadow contained something waiting.", "He stopped counting them. He just kept running."],
     width: 8400, bottom: 1000, spawn: { x: 150, y: 600 },
     checkpoints: [{ x: 3000, y: 540 }, { x: 6000, y: 480 }],
-    exit: { x: 8150, y: 440, w: 40, h: 120 },
+    exit: { x: 8040, y: 340, w: 40, h: 120 },
     springs: [[2200, 746, 70, 6, 1220], [5400, 696, 70, 6, 1280]],
     enemies: [
       { x: 1200, y: 630, minX: 800, maxX: 1600, speed: 120, dir: 1, w: 26, h: 50, type: 'patrol' },
@@ -277,7 +277,7 @@ const LEVELS = [
     story: ["The monoliths pulsed with something like language.", "He couldn't read it. He felt it.", "The dimension was watching him back."],
     width: 8600, bottom: 1100, spawn: { x: 150, y: 650 },
     checkpoints: [{ x: 3400, y: 560 }, { x: 6400, y: 480 }],
-    exit: { x: 8350, y: 440, w: 40, h: 120 },
+    exit: { x: 8200, y: 340, w: 40, h: 120 },
     springs: [[2600, 796, 70, 6, 1280], [5800, 696, 70, 6, 1350]],
     enemies: [
       { x: 1400, y: 660, minX: 900, maxX: 1900, speed: 90, dir: 1, w: 26, h: 50, type: 'charger' },
@@ -301,7 +301,7 @@ const LEVELS = [
     story: ["The ground began to crack beneath his feet.", "Not metaphorically. Literally.", "He ran faster. The dimension cracked wider."],
     width: 8800, bottom: 1100, spawn: { x: 150, y: 660 },
     checkpoints: [{ x: 3600, y: 560 }, { x: 6600, y: 480 }],
-    exit: { x: 8550, y: 440, w: 40, h: 120 },
+    exit: { x: 8420, y: 340, w: 40, h: 120 },
     springs: [[1600, 796, 70, 6, 1250], [4000, 746, 70, 6, 1300], [6600, 646, 70, 6, 1380]],
     enemies: [
       { x: 1200, y: 660, minX: 700, maxX: 1700, speed: 100, dir: 1, w: 26, h: 50, type: 'charger' },
@@ -330,7 +330,7 @@ const LEVELS = [
     story: ["The sky began falling in pieces.", "He had seen asteroids before. Not this close.", "Every shadow above him was a question mark."],
     width: 9000, bottom: 1100, spawn: { x: 150, y: 650 },
     checkpoints: [{ x: 3000, y: 560 }, { x: 6000, y: 500 }, { x: 7800, y: 460 }],
-    exit: { x: 8750, y: 420, w: 40, h: 120 },
+    exit: { x: 8560, y: 320, w: 40, h: 120 },
     springs: [[2000, 796, 70, 6, 1300], [4800, 746, 70, 6, 1350], [7200, 646, 70, 6, 1400]],
     enemies: [
       { x: 1200, y: 650, minX: 700, maxX: 1800, speed: 110, dir: 1, w: 26, h: 50, type: 'charger' },
@@ -359,7 +359,7 @@ const LEVELS = [
     story: ["The dimension was coming apart.", "He was the reason. Or maybe the solution.", "He kept running because stopping felt worse."],
     width: 9200, bottom: 1200, spawn: { x: 150, y: 700 },
     checkpoints: [{ x: 3200, y: 600 }, { x: 6400, y: 520 }, { x: 8200, y: 460 }],
-    exit: { x: 8950, y: 420, w: 40, h: 120 },
+    exit: { x: 8780, y: 340, w: 40, h: 120 },
     springs: [[1800, 846, 70, 6, 1320], [4400, 796, 70, 6, 1380], [7000, 696, 70, 6, 1420]],
     enemies: [
       { x: 1200, y: 700, minX: 600, maxX: 1800, speed: 120, dir: 1, w: 26, h: 50, type: 'charger' },
@@ -389,7 +389,7 @@ const LEVELS = [
     story: ["He reached the center of the dimension.", "Everything glowed too bright. Everything moved too fast.", "He had been here before. In his head."],
     width: 8800, bottom: 1100, spawn: { x: 150, y: 660 },
     checkpoints: [{ x: 3000, y: 560 }, { x: 5800, y: 480 }, { x: 7600, y: 440 }],
-    exit: { x: 8550, y: 400, w: 40, h: 120 },
+    exit: { x: 8380, y: 320, w: 40, h: 120 },
     springs: [[1600, 796, 70, 6, 1350], [4000, 746, 70, 6, 1400], [6400, 646, 70, 6, 1450]],
     enemies: [
       { x: 1000, y: 660, minX: 500, maxX: 1600, speed: 130, dir: 1, w: 26, h: 50, type: 'charger' },
@@ -418,7 +418,7 @@ const LEVELS = [
     story: ["Everything converged.", "The enemies knew where he was going before he did.", "He stopped thinking. He became pure motion."],
     width: 9400, bottom: 1200, spawn: { x: 150, y: 700 },
     checkpoints: [{ x: 2800, y: 600 }, { x: 5600, y: 520 }, { x: 8000, y: 460 }],
-    exit: { x: 9150, y: 420, w: 40, h: 120 },
+    exit: { x: 8980, y: 340, w: 40, h: 120 },
     springs: [[2000, 846, 70, 6, 1380], [4800, 796, 70, 6, 1420], [7200, 696, 70, 6, 1460]],
     enemies: [
       { x: 1000, y: 700, minX: 400, maxX: 1600, speed: 140, dir: 1, w: 26, h: 50, type: 'charger' },
@@ -448,7 +448,7 @@ const LEVELS = [
     story: ["Every single one of them came.", "He never learned their names. They never learned his.", "The suit was still clean. Somehow."],
     width: 9600, bottom: 1200, spawn: { x: 150, y: 700 },
     checkpoints: [{ x: 2600, y: 600 }, { x: 5200, y: 520 }, { x: 7800, y: 460 }],
-    exit: { x: 9350, y: 420, w: 40, h: 120 },
+    exit: { x: 9200, y: 330, w: 40, h: 120 },
     springs: [[1800, 846, 70, 6, 1400], [4400, 796, 70, 6, 1440], [7000, 696, 70, 6, 1480]],
     enemies: [
       { x: 800, y: 700, minX: 300, maxX: 1400, speed: 150, dir: 1, w: 26, h: 50, type: 'charger' },
@@ -482,7 +482,7 @@ const LEVELS = [
     story: ["The enemies were gone.", "The dimension was silent for the first time.", "He walked. Just walked. The sky had finally opened."],
     width: 5600, bottom: 1000, spawn: { x: 200, y: 600 },
     checkpoints: [],
-    exit: { x: 5300, y: 200, w: 40, h: 120 },
+    exit: { x: 5180, y: 120, w: 40, h: 120 },
     springs: [
       [1200, 746, 80, 6, 1350],
       [2600, 596, 80, 6, 1400],
