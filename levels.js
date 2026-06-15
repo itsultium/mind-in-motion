@@ -140,7 +140,7 @@ const LEVELS = [
     story: ["The world he knew collapsed behind him.", "Something ancient and alive waited on the other side.", "He didn't understand it. He ran toward it anyway."],
     width: 7400, bottom: 1000, spawn: { x: 160, y: 620 },
     checkpoints: [{ x: 3200, y: 560 }],
-    exit: { x: 7150, y: 460, w: 40, h: 120 },
+    exit: { x: 6880, y: 400, w: 40, h: 120 },
     springs: [[2000, 796, 70, 6, 1200]],
     enemies: [
       { x: 1800, y: 650, minX: 1400, maxX: 2400, speed: 110, dir: 1, w: 26, h: 50, type: 'patrol' },
