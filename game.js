@@ -811,18 +811,46 @@ function render() {
   const shakeY = game.screenShake > 0 ? (Math.random() - 0.5) * game.screenShake * 14 : 0;
   if (game.screenShake > 0) ctx.save(), ctx.translate(shakeX, shakeY);
 
-  // ---------- sky (cover full canvas, no gaps) ----------
+  // ---------- sky (full cover with gradient gap fill) ----------
   if (isBeyond) {
+    // Fill entire canvas with deep space color first
     ctx.fillStyle = '#030d18'; ctx.fillRect(0, 0, W, H);
     if (bgB.skyOk) {
-      const s = Math.max(W / bgB.sky.width, H / bgB.sky.height);
-      ctx.drawImage(bgB.sky, (W - bgB.sky.width * s) / 2, (H - bgB.sky.height * s) / 2, bgB.sky.width * s, bgB.sky.height * s);
+      const imgW = bgB.sky.width; const imgH = bgB.sky.height;
+      // Scale to fill width completely, let height be whatever it is
+      const s = W / imgW;
+      const dw = W; const dh = imgH * s;
+      // Draw centered vertically — if image is shorter than canvas, it will be centered
+      // but we already filled the bg color above so gaps are covered
+      const dy = (H - dh) / 2;
+      ctx.drawImage(bgB.sky, 0, dy, dw, dh);
+      // If there are gaps at top/bottom, fill with gradient matching image edge
+      if (dy > 0) {
+        const gt = ctx.createLinearGradient(0, 0, 0, dy + 40);
+        gt.addColorStop(0, '#030d18');
+        gt.addColorStop(1, 'rgba(3, 13, 24, 0)');
+        ctx.fillStyle = gt; ctx.fillRect(0, 0, W, dy + 40);
+      }
+      if (dy + dh < H) {
+        const gb = ctx.createLinearGradient(0, dy + dh - 40, 0, H);
+        gb.addColorStop(0, 'rgba(3, 13, 24, 0)');
+        gb.addColorStop(1, '#030d18');
+        ctx.fillStyle = gb; ctx.fillRect(0, dy + dh - 40, W, H - (dy + dh - 40));
+      }
     }
   } else {
     ctx.fillStyle = '#07101e'; ctx.fillRect(0, 0, W, H);
     if (bg.skyOk) {
-      const s = Math.max(W / bg.sky.width, H / bg.sky.height);
-      ctx.drawImage(bg.sky, (W - bg.sky.width * s) / 2, (H - bg.sky.height * s) / 2, bg.sky.width * s, bg.sky.height * s);
+      const imgW = bg.sky.width; const imgH = bg.sky.height;
+      const s = W / imgW;
+      const dw = W; const dh = imgH * s;
+      const dy = (H - dh) / 2;
+      ctx.drawImage(bg.sky, 0, dy, dw, dh);
+      if (dy > 0) {
+        const gt = ctx.createLinearGradient(0, 0, 0, dy + 40);
+        gt.addColorStop(0, '#07101e'); gt.addColorStop(1, 'rgba(7,16,30,0)');
+        ctx.fillStyle = gt; ctx.fillRect(0, 0, W, dy + 40);
+      }
     }
   }
 
