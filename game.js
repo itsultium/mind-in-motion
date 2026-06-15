@@ -679,6 +679,40 @@ function update(dt) {
   }
 }
 
+// Bioluminescent grass drawn on platform tops in the Beyond world
+function drawBeyondGrass(px, py, pw, seed) {
+  ctx.save();
+  // Clip to platform width
+  ctx.beginPath(); ctx.rect(px, py - 18, pw, 20); ctx.clip();
+
+  const bladeCount = Math.max(4, Math.floor(pw / 14));
+  for (let i = 0; i < bladeCount; i++) {
+    // Seeded pseudo-random per blade so it doesn't change every frame
+    const r1 = ((seed * 7 + i * 13) * 2654435761 >>> 0) / 4294967296;
+    const r2 = ((seed * 3 + i * 17) * 2246822519 >>> 0) / 4294967296;
+    const r3 = ((seed * 11 + i * 5) * 3266489917 >>> 0) / 4294967296;
+
+    const bx = px + (i / bladeCount) * pw + r1 * 10 - 5;
+    const baseY = py;
+    const height = 6 + r2 * 10;
+    const lean = (r3 - 0.5) * 8;
+    const thick = 1 + r1 * 1.5;
+
+    // Blade glow
+    const glowA = 0.3 + r2 * 0.4;
+    ctx.shadowColor = `rgba(0, 220, 200, ${glowA})`;
+    ctx.shadowBlur = 4;
+    ctx.strokeStyle = `rgba(0, ${180 + Math.floor(r3 * 60)}, ${160 + Math.floor(r1 * 60)}, ${0.6 + r2 * 0.35})`;
+    ctx.lineWidth = thick;
+    ctx.beginPath();
+    ctx.moveTo(bx, baseY);
+    ctx.quadraticCurveTo(bx + lean * 0.5, baseY - height * 0.6, bx + lean, baseY - height);
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
 // ============================================================
 // RENDER
 // ============================================================
@@ -776,17 +810,21 @@ function render() {
   const shakeY = game.screenShake > 0 ? (Math.random() - 0.5) * game.screenShake * 14 : 0;
   if (game.screenShake > 0) ctx.save(), ctx.translate(shakeX, shakeY);
 
-  // ---------- sky ----------
+  // ---------- sky (always cover full canvas) ----------
   if (isBeyond) {
+    ctx.fillStyle = '#010b14'; ctx.fillRect(0, 0, W, H);
     if (bgB.skyOk) {
       const s = Math.max(W / bgB.sky.width, H / bgB.sky.height);
-      ctx.drawImage(bgB.sky, (W - bgB.sky.width * s) / 2, (H - bgB.sky.height * s) / 2, bgB.sky.width * s, bgB.sky.height * s);
-    } else { ctx.fillStyle = '#010b14'; ctx.fillRect(0, 0, W, H); }
+      const sw = bgB.sky.width * s; const sh = bgB.sky.height * s;
+      ctx.drawImage(bgB.sky, (W - sw) / 2, 0, sw, Math.max(H, sh));
+    }
   } else {
+    ctx.fillStyle = '#0a1228'; ctx.fillRect(0, 0, W, H);
     if (bg.skyOk) {
       const s = Math.max(W / bg.sky.width, H / bg.sky.height);
-      ctx.drawImage(bg.sky, (W - bg.sky.width * s) / 2, (H - bg.sky.height * s) / 2, bg.sky.width * s, bg.sky.height * s);
-    } else { ctx.fillStyle = '#0a1228'; ctx.fillRect(0, 0, W, H); }
+      const sw = bg.sky.width * s; const sh = bg.sky.height * s;
+      ctx.drawImage(bg.sky, (W - sw) / 2, 0, sw, Math.max(H, sh));
+    }
   }
 
   // ---------- parallax layers ----------
@@ -849,42 +887,28 @@ function render() {
 
   const L = game.level;
 
-  // platforms
+  // ---------- platforms ----------
   for (let i = 0; i < L.platforms.length; i++) {
     const [plx, ply, plw, plh] = L.platforms[i];
-    // Avoid giant solid slabs — if platform is very wide, draw it in segments visually
-    if (plw > 1000 && isBeyond) {
-      // Draw as cracked terrain segments
-      const segW = 180 + Math.floor(i * 37) % 80;
-      for (let sx = plx; sx < plx + plw; sx += segW + 4) {
-        const sw = Math.min(segW, plx + plw - sx);
-        ctx.fillStyle = '#020e1a';
-        ctx.fillRect(sx, ply, sw, plh);
-        ctx.fillStyle = 'rgba(0, 200, 200, 0.50)';
-        ctx.fillRect(sx, ply, sw, 3);
-        // Crack lines
-        ctx.strokeStyle = 'rgba(0, 180, 180, 0.18)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(sx + sw * 0.3, ply); ctx.lineTo(sx + sw * 0.2, ply + plh * 0.4);
-        ctx.stroke();
-      }
-    } else if (plw > 1000) {
-      // Original world wide platform — draw as solid ground with subtle variation
-      ctx.fillStyle = '#060b17';
+
+    if (isBeyond) {
+      // Semi-transparent dark fill so background shows through
+      ctx.fillStyle = 'rgba(2, 10, 22, 0.72)';
       ctx.fillRect(plx, ply, plw, plh);
-      ctx.fillStyle = 'rgba(157, 184, 224, 0.20)';
-      ctx.fillRect(plx, ply, plw, 3);
-      // Subtle surface marks
-      for (let sx = plx + 200; sx < plx + plw - 100; sx += 220 + (sx % 80)) {
-        ctx.fillStyle = 'rgba(157, 184, 224, 0.06)';
-        ctx.fillRect(sx, ply, 40, plh);
-      }
+      // Cyan top edge
+      ctx.fillStyle = 'rgba(0, 210, 210, 0.55)';
+      ctx.fillRect(plx, ply, plw, 2);
+      // Subtle side glow
+      ctx.fillStyle = 'rgba(0, 180, 180, 0.08)';
+      ctx.fillRect(plx, ply, 2, plh);
+      ctx.fillRect(plx + plw - 2, ply, 2, plh);
+      // Bioluminescent grass on top
+      drawBeyondGrass(plx, ply, plw, i);
     } else {
-      ctx.fillStyle = isBeyond ? '#020e1a' : '#060b17';
+      ctx.fillStyle = 'rgba(6, 11, 23, 0.88)';
       ctx.fillRect(plx, ply, plw, plh);
-      ctx.fillStyle = isBeyond ? 'rgba(0, 200, 200, 0.50)' : 'rgba(157, 184, 224, 0.20)';
-      ctx.fillRect(plx, ply, plw, 3);
+      ctx.fillStyle = 'rgba(157, 184, 224, 0.22)';
+      ctx.fillRect(plx, ply, plw, 2);
     }
   }
 
