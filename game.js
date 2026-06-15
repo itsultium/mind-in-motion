@@ -639,8 +639,9 @@ function update(dt) {
     if (overlap(player.x, player.y, player.w, player.h, hx, hy - 6, hw, hh + 6)) { triggerDeath(); return; }
   }
 
-  // ---------- exit ----------
-  if (overlap(player.x, player.y, player.w, player.h, L.exit.x, L.exit.y, L.exit.w, L.exit.h)) game.state = 'FADE';
+  // ---------- exit (generous detection — touch within 60px of door) ----------
+  const ex = L.exit; 
+  if (overlap(player.x - 20, player.y, player.w + 40, player.h, ex.x, ex.y - 20, ex.w, ex.h + 40)) game.state = 'FADE';
 
   // ---------- fall death ----------
   if (player.y > L.bottom) { triggerDeath(); return; }
@@ -810,20 +811,23 @@ function render() {
   const shakeY = game.screenShake > 0 ? (Math.random() - 0.5) * game.screenShake * 14 : 0;
   if (game.screenShake > 0) ctx.save(), ctx.translate(shakeX, shakeY);
 
-  // ---------- sky (always cover full canvas) ----------
+  // ---------- sky (full 16:9 cover, no gaps) ----------
   if (isBeyond) {
-    ctx.fillStyle = '#010b14'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#030d18'; ctx.fillRect(0, 0, W, H);
     if (bgB.skyOk) {
-      const s = Math.max(W / bgB.sky.width, H / bgB.sky.height);
-      const sw = bgB.sky.width * s; const sh = bgB.sky.height * s;
-      ctx.drawImage(bgB.sky, (W - sw) / 2, 0, sw, Math.max(H, sh));
+      // Scale to cover entire canvas — crop rather than letterbox
+      const imgW = bgB.sky.width; const imgH = bgB.sky.height;
+      const s = Math.max(W / imgW, H / imgH);
+      const dw = imgW * s; const dh = imgH * s;
+      ctx.drawImage(bgB.sky, (W - dw) / 2, (H - dh) / 2, dw, dh);
     }
   } else {
-    ctx.fillStyle = '#0a1228'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#07101e'; ctx.fillRect(0, 0, W, H);
     if (bg.skyOk) {
-      const s = Math.max(W / bg.sky.width, H / bg.sky.height);
-      const sw = bg.sky.width * s; const sh = bg.sky.height * s;
-      ctx.drawImage(bg.sky, (W - sw) / 2, 0, sw, Math.max(H, sh));
+      const imgW = bg.sky.width; const imgH = bg.sky.height;
+      const s = Math.max(W / imgW, H / imgH);
+      const dw = imgW * s; const dh = imgH * s;
+      ctx.drawImage(bg.sky, (W - dw) / 2, (H - dh) / 2, dw, dh);
     }
   }
 
