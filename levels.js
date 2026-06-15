@@ -417,7 +417,7 @@ const LEVELS = [
     mood: { isBeyond: true },
     story: ["Everything converged.", "The enemies knew where he was going before he did.", "He stopped thinking. He became pure motion."],
     width: 9400, bottom: 1200, spawn: { x: 150, y: 700 },
-    checkpoints: [{ x: 2800, y: 600 }, { x: 5600, y: 520 }, { x: 8000, y: 460 }],
+    checkpoints: [{ x: 2800, y: 600 }, { x: 5600, y: 520 }, { x: 8000, y: 440 }],
     exit: { x: 8980, y: 340, w: 40, h: 120 },
     springs: [[2000, 846, 70, 6, 1380], [4800, 796, 70, 6, 1420], [7200, 696, 70, 6, 1460]],
     enemies: [
@@ -425,20 +425,20 @@ const LEVELS = [
       { x: 2200, y: 640, minX: 1800, maxX: 2800, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' },
       { x: 3400, y: 610, minX: 2800, maxX: 4000, speed: 200, dir: -1, w: 26, h: 50, type: 'stalker' },
       { x: 4600, y: 570, minX: 4000, maxX: 5200, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' },
-      { x: 5800, y: 540, minX: 5200, maxX: 6600, speed: 150, dir: 1, w: 26, h: 50, type: 'charger' },
-      { x: 7000, y: 500, minX: 6400, maxX: 7600, speed: 210, dir: -1, w: 26, h: 50, type: 'stalker' },
-      { x: 8200, y: 470, minX: 7800, maxX: 8800, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' }
+      { x: 5800, y: 540, minX: 5200, maxX: 6400, speed: 150, dir: 1, w: 26, h: 50, type: 'charger' },
+      { x: 7800, y: 480, minX: 7400, maxX: 8600, speed: 210, dir: -1, w: 26, h: 50, type: 'stalker' },
+      { x: 8800, y: 460, minX: 8400, maxX: 9100, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' }
     ],
     platforms: [
       [0, 780, 800, 420], [1000, 740, 360, 30], [1600, 700, 300, 30],
       [2000, 850, 70, 350], [2600, 640, 1100, 500], [3900, 600, 280, 30],
       [4500, 540, 300, 30], [4800, 800, 70, 400], [5300, 560, 1000, 580],
-      [6500, 520, 280, 30], [7000, 480, 280, 30], [7200, 700, 70, 500],
-      [7700, 460, 1500, 680], [9350, 0, 40, 1200]
+      [6500, 500, 340, 30], [7000, 460, 340, 30],
+      [7200, 700, 70, 500], [7500, 440, 1700, 700], [9350, 0, 40, 1200]
     ],
     hazards: [
       [1100, 732, 220, 8], [3100, 592, 260, 8], [5000, 532, 240, 8],
-      [6200, 512, 260, 8], [7500, 452, 280, 8], [8800, 432, 260, 8]
+      [6200, 492, 200, 8], [8200, 432, 260, 8]
     ]
   },
 
