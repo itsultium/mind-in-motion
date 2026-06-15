@@ -46,11 +46,11 @@ const bgB = {
 };
 bgB.sky.src   = 'https://res.cloudinary.com/dcjst7sod/image/upload/v1781468294/deep_space_night_sky__dark_b3ssyj.jpg';
 bgB.sky.onload   = () => bgB.skyOk   = true;
-bgB.hills.src = 'https://res.cloudinary.com/dcjst7sod/image/upload/v1781468289/alien_forest_silhouette_on_black__yvzhkw.jpg';
+bgB.hills.src = 'bg_hills_ch7.jpg';
 bgB.hills.onload = () => bgB.hillsOk = true;
 bgB.mono.src  = 'https://res.cloudinary.com/dcjst7sod/image/upload/v1781542147/Level_7_vfrroz.jpg';
 bgB.mono.onload  = () => bgB.monoOk  = true;
-bgB.ruins.src = 'https://res.cloudinary.com/dcjst7sod/image/upload/v1781468294/floating_ruins_and_broken_architecture_n3nn4b.jpg';
+bgB.ruins.src = 'bg_ruins_ch7.jpg';
 bgB.ruins.onload = () => bgB.ruinsOk = true;
 
 // ---------- chapter card illustrations ----------
@@ -811,23 +811,18 @@ function render() {
   const shakeY = game.screenShake > 0 ? (Math.random() - 0.5) * game.screenShake * 14 : 0;
   if (game.screenShake > 0) ctx.save(), ctx.translate(shakeX, shakeY);
 
-  // ---------- sky (full 16:9 cover, no gaps) ----------
+  // ---------- sky (cover full canvas, no gaps) ----------
   if (isBeyond) {
     ctx.fillStyle = '#030d18'; ctx.fillRect(0, 0, W, H);
     if (bgB.skyOk) {
-      // Scale to cover entire canvas — crop rather than letterbox
-      const imgW = bgB.sky.width; const imgH = bgB.sky.height;
-      const s = Math.max(W / imgW, H / imgH);
-      const dw = imgW * s; const dh = imgH * s;
-      ctx.drawImage(bgB.sky, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      const s = Math.max(W / bgB.sky.width, H / bgB.sky.height);
+      ctx.drawImage(bgB.sky, (W - bgB.sky.width * s) / 2, (H - bgB.sky.height * s) / 2, bgB.sky.width * s, bgB.sky.height * s);
     }
   } else {
     ctx.fillStyle = '#07101e'; ctx.fillRect(0, 0, W, H);
     if (bg.skyOk) {
-      const imgW = bg.sky.width; const imgH = bg.sky.height;
-      const s = Math.max(W / imgW, H / imgH);
-      const dw = imgW * s; const dh = imgH * s;
-      ctx.drawImage(bg.sky, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      const s = Math.max(W / bg.sky.width, H / bg.sky.height);
+      ctx.drawImage(bg.sky, (W - bg.sky.width * s) / 2, (H - bg.sky.height * s) / 2, bg.sky.width * s, bg.sky.height * s);
     }
   }
 
