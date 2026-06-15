@@ -116,7 +116,7 @@ const LEVELS = [
   },
 
   // ============================================================
-  // BRAND NEW ARC — THE COSMIC OVERGROWTH DIMENSION
+  // LEVEL 7 ONWARD — THE COSMIC OVERGROWTH SECTOR
   // ============================================================
   {
     name: "THE CRYSTAL SECTOR", subtitle: "CHAPTER VII",
@@ -136,155 +136,154 @@ const LEVELS = [
     hazards: [[1300, 940, 200, 10], [3700, 642, 300, 8]]
   },
   {
+    // SOLID GROUND MATRICES INITIALIZED FROM THIS POINT ONWARD
     name: "SHATTERED STARFIELD", subtitle: "CHAPTER VIII",
     mood: { isCosmic: true },
-    story: ["The platforms floated without gravity or stone anchors.", "Ancient towers hung inverted over empty space.", "The stars generated cross-currents of velocity."],
-    width: 8200, bottom: 1000, spawn: { x: 160, y: 450 },
-    checkpoints: [{ x: 2900, y: 400 }], exit: { x: 7950, y: 300, w: 40, h: 120 },
-    springs: [[4200, 650, 70, 6, 1350]], enemies: [],
+    story: ["The architecture collapsed into continuous, solid earth.", "No more floating block steps beneath his feet.", "He ran directly along the planetary crust."],
+    width: 8200, bottom: 1000, spawn: { x: 160, y: 550 },
+    checkpoints: [{ x: 3400, y: 550 }], exit: { x: 7950, y: 530, w: 40, h: 120 },
+    springs: [[2200, 640, 70, 6, 1350], [4800, 640, 70, 6, 1350]], enemies: [],
     spawners: [
-      { x: 3500, y: 200, vx: -400, vy: 100, rate: 1.5 },
-      { x: 6000, y: 150, vx: -500, vy: 0, rate: 1.2 }
+      { x: 3000, y: 300, vx: -460, vy: 40, rate: 1.6 },
+      { x: 5500, y: 250, vx: -520, vy: -30, rate: 1.3 }
     ],
     platforms: [
-      [0, 550, 1000, 450], [1200, 650, 400, 50], [1800, 500, 300, 500],
-      [2300, 450, 500, 550], [2900, 500, 1000, 500], [4100, 700, 300, 50],
-      [5000, 450, 2400, 550]
+      [0, 650, 8200, 350], // UNBROKEN GROUND AXIS LAYER
+      [1400, 520, 300, 40], [3200, 450, 450, 40], [5800, 500, 350, 40]
     ],
-    hazards: [[1000, 990, 200, 10], [5700, 442, 350, 8]]
+    hazards: [[2600, 642, 180, 8], [5200, 642, 220, 8]]
   },
   {
     name: "RUNED THICKETS", subtitle: "CHAPTER IX",
     mood: { isCosmic: true },
-    story: ["Glowing matrices carved safe paths across the abyss.", "The silhouette character timed his strides perfectly.", "One mistep meant interception by kinetic arrays."],
+    story: ["The path was flat, predictable ground, but the traps weren't.", "Projectiles altered velocity mid-flight.", "Slide beneath the cross-firing neon stars."],
     width: 7800, bottom: 900, spawn: { x: 120, y: 500 },
-    checkpoints: [{ x: 5100, y: 400 }], exit: { x: 7550, y: 350, w: 40, h: 120 },
+    checkpoints: [{ x: 4000, y: 500 }], exit: { x: 7550, y: 480, w: 40, h: 120 },
     springs: [], enemies: [],
     spawners: [
-      { x: 1800, y: 300, vx: -350, vy: 50, rate: 2.0 },
-      { x: 4000, y: 200, vx: -450, vy: 0, rate: 1.4 },
-      { x: 6800, y: 250, vx: -400, vy: -50, rate: 1.7 }
+      { x: 2400, y: 200, vx: -440, vy: 60, rate: 1.4 },
+      { x: 4800, y: 300, vx: -490, vy: 0, rate: 1.1 },
+      { x: 6800, y: 150, vx: -410, vy: 90, rate: 1.5 }
     ],
     platforms: [
-      [0, 600, 900, 300], [1050, 600, 800, 300], [2000, 520, 450, 380],
-      [2600, 550, 1800, 350], [4700, 500, 1200, 400], [6200, 450, 1500, 450]
+      [0, 600, 7800, 300], // UNBROKEN GROUND AXIS LAYER
+      [1800, 460, 400, 30], [3500, 420, 500, 30], [5500, 450, 400, 30]
     ],
-    hazards: [[900, 890, 150, 10], [4900, 492, 500, 8]]
+    hazards: [[3100, 592, 250, 8], [6000, 592, 300, 8]]
   },
   {
     name: "ECLIPSE OF MONOLITHS", subtitle: "CHAPTER X",
     mood: { isCosmic: true },
-    story: ["Giant vertical shards hummed with geometric power.", "The overgrowth was alive, neon, and defensive.", "He accelerated beneath cross-firing streams."],
+    story: ["Monolithic stones hummed with dangerous kinetic energy.", "The overgrowth fired down onto the continuous highway.", "Rhythm and raw reflexes were his only defenses."],
     width: 8400, bottom: 950, spawn: { x: 150, y: 550 },
-    checkpoints: [{ x: 3000, y: 500 }], exit: { x: 8150, y: 400, w: 40, h: 120 },
-    springs: [[2100, 700, 60, 6, 1400]], enemies: [],
+    checkpoints: [{ x: 4200, y: 550 }], exit: { x: 8150, y: 530, w: 40, h: 120 },
+    springs: [[3000, 640, 60, 6, 1400]], enemies: [],
     spawners: [
-      { x: 2800, y: 250, vx: -460, vy: 0, rate: 1.3 },
-      { x: 5500, y: 150, vx: -400, vy: 120, rate: 1.6 }
+      { x: 3200, y: 250, vx: -500, vy: 0, rate: 1.2 },
+      { x: 6200, y: 180, vx: -430, vy: 110, rate: 1.4 }
     ],
     platforms: [
-      [0, 660, 1200, 290], [1350, 600, 250, 40], [1700, 540, 250, 40],
-      [2100, 706, 60, 100], [2300, 480, 500, 470], [2900, 600, 2500, 350],
-      [5800, 550, 2600, 400]
+      [0, 650, 8400, 300], // UNBROKEN GROUND AXIS LAYER
+      [2200, 500, 300, 40], [4500, 480, 600, 40]
     ],
-    hazards: [[1200, 940, 150, 10], [6200, 542, 500, 8]]
+    hazards: [[1500, 642, 300, 8], [5400, 642, 400, 8]]
   },
   {
     name: "COSMIC GAUNTLET", subtitle: "CHAPTER XI",
     mood: { isCosmic: true },
-    story: ["The density of weapon fire increased exponentially.", "Velocity vectors overlapped from multiple coordinates.", "Keep moving forward. Do not look down."],
+    story: ["The speed of the artillery increased exponentially.", "Trajectories warped through the spatial grid.", "He sprinted hard along the unbroken asphalt."],
     width: 7400, bottom: 900, spawn: { x: 140, y: 500 },
-    checkpoints: [{ x: 2800, y: 400 }], exit: { x: 7100, y: 350, w: 40, h: 120 },
+    checkpoints: [{ x: 3500, y: 500 }], exit: { x: 7100, y: 480, w: 40, h: 120 },
     springs: [], enemies: [],
     spawners: [
-      { x: 2000, y: 100, vx: -380, vy: 150, rate: 1.1 },
-      { x: 3500, y: 150, vx: -450, vy: 0, rate: 0.9 },
-      { x: 5000, y: 200, vx: -400, vy: -50, rate: 1.2 }
+      { x: 2200, y: 150, vx: -410, vy: 140, rate: 0.95 },
+      { x: 4400, y: 200, vx: -490, vy: -30, rate: 0.85 },
+      { x: 6500, y: 100, vx: -430, vy: 80, rate: 1.1 }
     ],
     platforms: [
-      [0, 600, 1100, 300], [1250, 520, 200, 30], [1600, 440, 200, 30],
-      [1950, 550, 2500, 350], [4700, 500, 2700, 400]
+      [0, 600, 7400, 300], // UNBROKEN GROUND AXIS LAYER
+      [1500, 480, 500, 35], [4000, 450, 600, 35]
     ],
-    hazards: [[1100, 890, 150, 10], [5000, 492, 600, 8]]
+    hazards: [[2500, 592, 400, 8], [5200, 592, 500, 8]]
   },
   {
-    name: "SHURIKEN GAUNTLET", subtitle: "CHAPTER XII",
+    name: "SHURIKEN MATRIX", subtitle: "CHAPTER XII",
     mood: { isCosmic: true },
-    story: ["A vertical grid of launchers blocked the horizon.", "The kinetic stars spun at high angular frequency.", "Slide under the apex of the curve."],
+    story: ["A wall of automated launchers lined the horizon.", "The kinetic wheels spun at variable tracking frequency.", "Dodge beneath the high arcs."],
     width: 8000, bottom: 950, spawn: { x: 150, y: 550 },
-    checkpoints: [{ x: 3100, y: 500 }], exit: { x: 7750, y: 350, w: 40, h: 120 },
-    springs: [[2200, 700, 80, 8, 1300]], enemies: [],
+    checkpoints: [{ x: 3800, y: 550 }], exit: { x: 7750, y: 530, w: 40, h: 120 },
+    springs: [[2600, 640, 80, 8, 1300]], enemies: [],
     spawners: [
-      { x: 2500, y: 300, vx: -480, vy: 0, rate: 0.85 },
-      { x: 4500, y: 200, vx: -400, vy: 100, rate: 1.1 },
-      { x: 6500, y: 150, vx: -520, vy: 0, rate: 0.75 }
+      { x: 2800, y: 200, vx: -520, vy: 0, rate: 0.80 },
+      { x: 5000, y: 150, vx: -460, vy: 90, rate: 0.95 },
+      { x: 7000, y: 250, vx: -550, vy: -40, rate: 0.70 }
     ],
     platforms: [
-      [0, 650, 1300, 300], [1450, 600, 300, 40], [1900, 520, 250, 40],
-      [2200, 706, 80, 100], [2450, 480, 2000, 470], [4800, 420, 3200, 530]
+      [0, 650, 8000, 300], // UNBROKEN GROUND AXIS LAYER
+      [1800, 520, 400, 40], [4200, 480, 800, 40]
     ],
-    hazards: [[1300, 940, 150, 10], [5600, 492, 400, 8]]
+    hazards: [[3200, 642, 400, 8], [6000, 642, 450, 8]]
   },
   {
     name: "HORIZON VECTOR", subtitle: "CHAPTER XIII",
     mood: { isCosmic: true },
-    story: ["The architecture dissolved cleanly into stardust.", "Only gravity anchors and floating pathways remained.", "Rhythm is your weapon against the grid."],
+    story: ["The background monuments began shifting positions.", "The ground remained firm, but the sky was falling.", "Keep running toward the distortion."],
     width: 7600, bottom: 900, spawn: { x: 130, y: 500 },
-    checkpoints: [{ x: 2900, y: 400 }], exit: { x: 7350, y: 350, w: 40, h: 120 },
-    springs: [[1500, 650, 70, 6, 1380]], enemies: [],
+    checkpoints: [{ x: 3200, y: 500 }], exit: { x: 7350, y: 480, w: 40, h: 120 },
+    springs: [[2000, 590, 70, 6, 1380]], enemies: [],
     spawners: [
-      { x: 3000, y: 200, vx: -430, vy: 80, rate: 1.2 },
-      { x: 5200, y: 100, vx: -480, vy: 0, rate: 0.95 }
+      { x: 3200, y: 100, vx: -460, vy: 70, rate: 1.1 },
+      { x: 5800, y: 200, vx: -510, vy: -50, rate: 0.90 }
     ],
     platforms: [
-      [0, 600, 1000, 300], [1150, 650, 200, 40], [1500, 656, 70, 50],
-      [1750, 500, 2500, 400], [4500, 606, 3100, 450]
+      [0, 600, 7600, 300], // UNBROKEN GROUND AXIS LAYER
+      [1200, 470, 350, 30], [4800, 440, 700, 30]
     ],
-    hazards: [[1000, 890, 150, 10], [5100, 442, 600, 8]]
+    hazards: [[2500, 592, 500, 8], [5800, 592, 400, 8]]
   },
   {
     name: "GRAVITY VOID", subtitle: "CHAPTER XIV",
     mood: { isCosmic: true },
-    story: ["The atmospheric pressure hummed like a generator chord.", "Multiple vertical cascades intersecting without friction.", "The final approach to the core landscape."],
+    story: ["The structural energy hummed like a generator grid.", "Intersections of heavy fire crossed paths on the highway.", "The final line of defense before the core transition."],
     width: 8600, bottom: 950, spawn: { x: 150, y: 550 },
-    checkpoints: [{ x: 3200, y: 450 }], exit: { x: 8350, y: 350, w: 40, h: 120 },
-    springs: [[2200, 700, 80, 8, 1420]], enemies: [],
+    checkpoints: [{ x: 4000, y: 550 }], exit: { x: 8350, y: 530, w: 40, h: 120 },
+    springs: [[3400, 640, 80, 8, 1420]], enemies: [],
     spawners: [
-      { x: 2800, y: 150, vx: -550, vy: 50, rate: 0.7 },
-      { x: 5500, y: 250, vx: -460, vy: -50, rate: 0.8 }
+      { x: 3000, y: 150, vx: -560, vy: 40, rate: 0.65 },
+      { x: 6200, y: 250, vx: -490, vy: -40, rate: 0.75 }
     ],
     platforms: [
-      [0, 650, 1200, 300], [1350, 580, 300, 40], [1800, 500, 250, 40],
-      [2200, 706, 80, 100], [2450, 450, 3500, 500], [6000, 500, 2600, 450]
+      [0, 650, 8600, 300], // UNBROKEN GROUND AXIS LAYER
+      [2200, 510, 500, 40], [5500, 490, 800, 40]
     ],
-    hazards: [[1200, 940, 150, 10], [6200, 492, 700, 8]]
+    hazards: [[1500, 642, 350, 8], [6800, 642, 600, 8]]
   },
   {
-    name: "ABYSSAL CHREOD", subtitle: "CHAPTER XV",
+    name: "ABYSSAL VECTOR", subtitle: "CHAPTER XV",
     mood: { isCosmic: true },
-    story: ["Every spatial vector converged into one point.", "A firing patterns tracking perfectly with his movements.", "Dodge, leap, and transcend the matrix structure."],
+    story: ["Every spatial crosshair locked onto his coordinates.", "The weapon streams tracking seamlessly with his motion.", "Transcend the mechanical limits of the platform."],
     width: 7400, bottom: 900, spawn: { x: 140, y: 500 },
-    checkpoints: [{ x: 3000, y: 400 }], exit: { x: 7100, y: 350, w: 40, h: 120 },
+    checkpoints: [{ x: 3500, y: 500 }], exit: { x: 7100, y: 480, w: 40, h: 120 },
     springs: [], enemies: [],
     spawners: [
-      { x: 2000, y: 150, vx: -400, vy: 100, rate: 0.65 },
-      { x: 4000, y: 100, vx: -500, vy: 0, rate: 0.55 },
-      { x: 6000, y: 200, vx: -450, vy: -100, rate: 0.6 }
+      { x: 2200, y: 100, vx: -420, vy: 90, rate: 0.60 },
+      { x: 4400, y: 150, vx: -530, vy: 0, rate: 0.50 },
+      { x: 6500, y: 200, vx: -470, vy: -80, rate: 0.55 }
     ],
     platforms: [
-      [0, 600, 2000, 300], [2400, 500, 2000, 400], [4800, 450, 2600, 450]
+      [0, 600, 7400, 300] // UNBROKEN GROUND AXIS LAYER
     ],
-    hazards: [[2000, 890, 400, 10]]
+    hazards: [[2000, 592, 600, 8], [4800, 592, 800, 8]]
   },
   {
     name: "TRANSCENDENCE", subtitle: "CHAPTER XVI",
     mood: { isCosmic: true, isFinale: true },
-    story: ["The artillery fell completely silent as he reached the core.", "The starfield opened up into absolute, perfect clarity.", "He kept the suit clean anyway. He crossed over."],
+    story: ["The artillery fell completely silent at the end.", "The open space starfield opened up into perfect vision.", "He kept the suit clean anyway. He crossed over."],
     width: 4800, bottom: 900, spawn: { x: 200, y: 500 },
     checkpoints: [], exit: { x: 4450, y: 380, w: 40, h: 120 },
     springs: [], enemies: [], spawners: [],
     platforms: [
-      [0, 600, 1500, 300], [1750, 540, 400, 30], [2350, 480, 400, 30], [2950, 420, 1900, 480]
+      [0, 600, 4800, 300] // UNBROKEN GROUND AXIS LAYER
     ],
     hazards: []
   }
