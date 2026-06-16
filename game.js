@@ -41,25 +41,13 @@ bg.occl.src = 'bg_occl_thin.png';      bg.occl.onload  = () => bg.occlOk  = true
 bg.shard.src = 'bg_occl_shard.png';    bg.shard.onload = () => bg.shardOk = true;
 
 const bgB = {
-  sky: new Image(), hills: new Image(), mono: new Image(), ruins: new Image(),
-  skyOk: false, hillsOk: false, monoOk: false, ruinsOk: false
+  sky: new Image(), mono: new Image(),
+  skyOk: false, monoOk: false
 };
-bgB.sky.src   = 'https://res.cloudinary.com/dcjst7sod/image/upload/v1781468294/deep_space_night_sky__dark_b3ssyj.jpg';
-bgB.sky.onload   = () => bgB.skyOk   = true;
-bgB.hills.src = 'bg_hills_ch7.jpg';
-bgB.hills.onload = () => bgB.hillsOk = true;
-bgB.mono.src  = 'https://res.cloudinary.com/dcjst7sod/image/upload/v1781542147/Level_7_vfrroz.jpg';
-bgB.mono.onload  = () => bgB.monoOk  = true;
-bgB.ruins.src = 'bg_ruins_ch7.jpg';
-bgB.ruins.onload = () => bgB.ruinsOk = true;
-
-const cardImages = [];
-const cardImagesOk = Array(45).fill(false);
-for (let i = 0; i < 45; i++) {
-  cardImages[i] = new Image();
-  cardImages[i].src = `chapter_${i}.jpg`;
-  cardImages[i].onload = () => { cardImagesOk[i] = true; };
-}
+bgB.sky.src  = 'https://res.cloudinary.com/dcjst7sod/image/upload/v1781468294/deep_space_night_sky__dark_b3ssyj.jpg';
+bgB.sky.onload  = () => bgB.skyOk  = true;
+bgB.mono.src = 'https://res.cloudinary.com/dcjst7sod/image/upload/v1781542147/Level_7_vfrroz.jpg';
+bgB.mono.onload = () => bgB.monoOk = true;
 
 // ---------- physics ----------
 const PHYS = {
@@ -210,7 +198,7 @@ function anyKeyAdvance() {
   if (game.state === 'STORY') {
     if (game.storyLine < game.level.story.length) game.storyLine = game.level.story.length;
     else { game.state = 'PLAY'; keys.left = false; keys.right = false; jumpHeld = false; }
-  } else if (game.state === 'END') { loadLevel(0); }
+  } else if (game.state === 'END') { game.deaths = 0; loadLevel(0); }
 }
 
 // ---------- level loading ----------
@@ -238,6 +226,10 @@ function loadLevel(i) {
   game.state = 'STORY'; game.storyLine = 0; game.storyTimer = 0;
   game.fade = 0; game.bloom = 0.0;
   sentinelBullets.length = 0; playerBullets.length = 0;
+  // save progress
+  const prev = parseInt(localStorage.getItem('mim_unlocked') || '0');
+  if (i > prev) localStorage.setItem('mim_unlocked', i);
+  localStorage.setItem('mim_chapter', i);
   initAmbientParticles(); initEnemies(); respawn();
 }
 
@@ -263,14 +255,18 @@ function overlap(ax, ay, aw, ah, bx, by, bw, bh) { return ax < bx + bw && ax + a
 // ============================================================
 function update(dt) {
   updateAudioMixing(dt);
-  if (game.state !== 'PLAY' && game.state !== 'FADE') {
-    if (game.state === 'STORY') game.storyTimer += dt, game.storyLine = Math.min(Math.floor(game.storyTimer / 1.4), game.level.story.length);
-    return;
-  }
-  
+
   if (game.state === 'FADE') {
     game.fade = Math.min(1, game.fade + dt * 1.4);
-    if (game.fade >= 1) loadLevel(game.levelIndex + 1);
+    if (game.fade >= 1) {
+      if (game.levelIndex + 1 >= LEVELS.length) { game.state = 'END'; }
+      else { loadLevel(game.levelIndex + 1); }
+    }
+    return;
+  }
+
+  if (game.state !== 'PLAY') {
+    if (game.state === 'STORY') game.storyTimer += dt, game.storyLine = Math.min(Math.floor(game.storyTimer / 1.4), game.level.story.length);
     return;
   }
 
@@ -379,8 +375,12 @@ function update(dt) {
     player.vx = Math.max(-PHYS.maxSpeed, Math.min(PHYS.maxSpeed, player.vx));
     player.vy = Math.min(player.vy + PHYS.gravity * dt, PHYS.maxFall);
 
+    player.coyote = Math.max(0, (player.coyote || 0) - dt);
     player.buffer = Math.max(0, player.buffer - dt);
-    if (player.buffer > 0 && player.grounded) { player.vy = PHYS.jumpVel; player.grounded = false; player.buffer = 0; synthSFX('jump'); }
+    if (player.buffer > 0 && (player.grounded || player.coyote > 0)) {
+      player.vy = PHYS.jumpVel; player.grounded = false;
+      player.coyote = 0; player.buffer = 0; synthSFX('jump');
+    }
     if (!jumpHeld && player.vy < 0) player.vy *= 1 - (1 - PHYS.jumpCut) * Math.min(1, dt * 14);
 
     player.grounded = false; player.x += player.vx * dt;
@@ -393,7 +393,7 @@ function update(dt) {
     player.y += player.vy * dt;
     for (const [plx, ply, plw, plh] of L.platforms) {
       if (overlap(player.x, player.y, player.w, player.h, plx, ply, plw, plh)) {
-        if (player.vy > 0) { player.y = ply - player.h; player.grounded = true; player.vy = 0; } 
+        if (player.vy > 0) { player.y = ply - player.h; player.grounded = true; player.vy = 0; player.coyote = PHYS.coyoteTime; } 
         else if (player.vy < 0) { player.y = ply + plh; player.vy = 0; }
       }
     }
@@ -417,7 +417,10 @@ function update(dt) {
   cam.zoom += (cam.targetZoom - cam.zoom) * dt * 2.5;
   cam.x += ((player.x + player.w / 2) - cam.x) * dt * 4;
   cam.y += ((player.y + player.h / 2) - cam.y) * dt * 3;
-  cam.x = Math.max((W / 2) / cam.zoom, Math.min(L.width - (W / 2) / cam.zoom, cam.x));
+  const halfW = (W / 2) / cam.zoom;
+  const halfH = (H / 2) / cam.zoom;
+  cam.x = Math.max(halfW, Math.min(L.width - halfW, cam.x));
+  cam.y = Math.max(halfH, Math.min(L.bottom - halfH, cam.y));
   
   // Particles
   for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.t += dt; if (p.t > p.life) particles.splice(i, 1); else { p.x += p.vx * dt; p.y += p.vy * dt; } }
@@ -435,7 +438,44 @@ function layer(img, ok, p, hFrac, gap = 1) {
 
 function render() {
   if (game.state === 'MENU' || game.state === 'INTRO') { ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H); return; }
-  if (game.state === 'STORY') { ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#dfe8f5'; ctx.font = '24px Georgia'; ctx.fillText(game.level.name, W/2 - 50, H/2); return; }
+  if (game.state === 'STORY') {
+    ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H);
+    const L = game.level;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(157,184,224,0.7)';
+    ctx.font = '13px Georgia, serif';
+    ctx.fillText(L.subtitle, W/2, H*0.32);
+    ctx.fillStyle = '#dfe8f5';
+    ctx.font = '34px Georgia, serif';
+    ctx.fillText(L.name, W/2, H*0.32 + 44);
+    ctx.font = '16px Georgia, serif';
+    ctx.fillStyle = 'rgba(223,232,245,0.85)';
+    for (let i = 0; i < game.storyLine; i++) ctx.fillText(L.story[i], W/2, H*0.5 + i*30);
+    if (game.storyLine >= L.story.length) {
+      ctx.fillStyle = `rgba(157,184,224,${0.4 + 0.3*Math.sin(performance.now()/500)})`;
+      ctx.font = '12px Georgia, serif';
+      ctx.fillText('press any key', W/2, H*0.78);
+    }
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  if (game.state === 'END') {
+    ctx.fillStyle = 'rgba(5,9,15,0.94)'; ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#dfe8f5'; ctx.font = '30px Georgia, serif';
+    ctx.fillText('THE SKY HAS OPENED UP', W/2, H*0.4);
+    ctx.fillStyle = 'rgba(223,232,245,0.75)'; ctx.font = '15px Georgia, serif';
+    const line = game.deaths === 0
+      ? 'He fell zero times. He suspects this means nothing.'
+      : `He fell ${game.deaths} time${game.deaths===1?'':'s'}. He kept the suit clean anyway.`;
+    ctx.fillText(line, W/2, H*0.4+40);
+    ctx.fillStyle = `rgba(157,184,224,${0.4+0.3*Math.sin(performance.now()/500)})`;
+    ctx.font = '12px Georgia, serif';
+    ctx.fillText('press any key to run again', W/2, H*0.72);
+    ctx.textAlign = 'left';
+    return;
+  }
 
   const isBeyond = game.level.mood && game.level.mood.isBeyond;
   
@@ -443,12 +483,11 @@ function render() {
 
   // Background Parallax with Level 7 Height Fix (1.0 instead of 0.72)
   if (isBeyond) {
-    layer(bgB.hills, bgB.hillsOk, 0.15, 0.62, 1.0);
-    layer(bgB.mono, bgB.monoOk, 0.35, 1.0, 1.0); // FIX APPLIED HERE
-    layer(bgB.ruins, bgB.ruinsOk, 0.55, 0.52, 1.0);
+    if (bgB.skyOk) { const s = Math.max(W/bgB.sky.width, H/bgB.sky.height); ctx.drawImage(bgB.sky, (W-bgB.sky.width*s)/2, (H-bgB.sky.height*s)/2, bgB.sky.width*s, bgB.sky.height*s); }
+    layer(bgB.mono, bgB.monoOk, 0.35, 1.0, 1.0);
   } else {
     layer(bg.hills, bg.hillsOk, 0.15, 0.60, 1.0);
-    layer(bg.mono, bg.monoOk, 0.35, 0.70, 1.0);
+    layer(bg.mono,  bg.monoOk,  0.35, 0.70, 1.0);
   }
 
   ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
@@ -505,6 +544,7 @@ function render() {
     ctx.fillStyle = isBeyond ? 'rgba(0, 200, 200, 0.7)' : 'rgba(100, 120, 140, 0.6)';
     ctx.fillRect(p.x, p.y, 4, 4);
   }
+  ctx.globalAlpha = 1;
   ctx.restore();
 
   // Crosshair
@@ -525,6 +565,79 @@ function loop(now) {
 }
 setupSaveMenu(); requestAnimationFrame(loop);
 
+function toggleMute() {
+  audioChannels.muted = !audioChannels.muted;
+  if (audioChannels.muted) {
+    audioChannels.nature.volume = 0;
+    audioChannels.music.volume = 0;
+    audioChannels.menuMusic.volume = 0;
+  }
+}
+
+function playIntro() {
+  const intro = document.getElementById('intro-container');
+  const vid   = document.getElementById('intro-video');
+  if (!vid.src) { document.getElementById('gatekeeper').classList.add('hidden'); loadLevel(0); return; }
+  intro.classList.add('active');
+  vid.play().catch(() => {});
+  const skip = () => { vid.pause(); intro.classList.remove('active'); document.getElementById('gatekeeper').classList.add('hidden'); loadLevel(0); intro.removeEventListener('click', skip); };
+  intro.addEventListener('click', skip);
+  vid.onended = skip;
+}
+
 function setupSaveMenu() {
-  document.getElementById('menu-new-btn').addEventListener('click', () => { document.getElementById('gatekeeper').classList.add('hidden'); loadLevel(0); });
+  const unlocked = parseInt(localStorage.getItem('mim_unlocked') || '0');
+  const saved    = parseInt(localStorage.getItem('mim_chapter')  || '0');
+
+  const newBtn  = document.getElementById('menu-new-btn');
+  const contBtn = document.getElementById('menu-cont-btn');
+  const quitBtn = document.getElementById('menu-quit-btn');
+  const panel   = document.getElementById('level-select-panel');
+  const nodes   = document.getElementById('nodes-container');
+
+  // Show CONTINUE if save exists
+  if (unlocked > 0) { contBtn.style.display = 'block'; }
+
+  // Show QUIT only when in-game
+  if (game.state === 'PLAY' || game.state === 'PAUSE') { quitBtn.style.display = 'block'; }
+  else { quitBtn.style.display = 'none'; }
+
+  newBtn.onclick = () => {
+    startAudio();
+    localStorage.removeItem('mim_unlocked');
+    localStorage.removeItem('mim_chapter');
+    playIntro();
+  };
+
+  contBtn.onclick = () => {
+    startAudio();
+    document.getElementById('gatekeeper').classList.add('hidden');
+    loadLevel(saved);
+  };
+
+  quitBtn.onclick = () => {
+    game.state = 'MENU';
+    document.getElementById('gatekeeper').classList.remove('hidden');
+    setupSaveMenu();
+  };
+
+  // Build level select nodes
+  nodes.innerHTML = '';
+  for (let i = 0; i <= unlocked && i < LEVELS.length; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'node-btn';
+    btn.textContent = `${LEVELS[i].subtitle}`;
+    btn.onclick = () => {
+      startAudio();
+      document.getElementById('gatekeeper').classList.add('hidden');
+      loadLevel(i);
+    };
+    nodes.appendChild(btn);
+  }
+
+  // Show panel if any chapters unlocked
+  if (unlocked > 0) {
+    panel.style.opacity = '1';
+    panel.style.pointerEvents = 'auto';
+  }
 }
