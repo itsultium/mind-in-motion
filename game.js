@@ -182,23 +182,29 @@ function setKey(code, down) {
   if (code === 'ArrowRight' || code === 'KeyD') keys.right = down;
   if (code === 'ArrowUp'    || code === 'KeyW') keys.up    = down;
   if (code === 'ArrowDown'  || code === 'KeyS') keys.down  = down;
-  if (code === 'Space') jumpHeld = down;
-  
+
   if (down) {
     if ((code === 'Escape' || code === 'KeyP') && (game.state === 'PLAY' || game.state === 'PAUSE')) {
       if (game.state === 'PLAY') { game.state = 'PAUSE'; setupSaveMenu(); document.getElementById('gatekeeper').classList.remove('hidden'); }
       else { game.state = 'PLAY'; document.getElementById('gatekeeper').classList.add('hidden'); }
     }
-    if (code === 'Space' && game.state === 'PLAY' && !game.level.isPlane) {
-      if (!jumpHeld) player.buffer = PHYS.jumpBuffer; 
+    if ((code === 'Space' || code === 'ArrowUp' || code === 'KeyW') && game.state === 'PLAY') {
+      if (!jumpHeld) player.buffer = PHYS.jumpBuffer;
       jumpHeld = true;
     }
     if (code === 'KeyR' && game.state === 'PLAY') triggerDeath();
+    if (code === 'KeyM') toggleMute();
     if (game.state === 'INTRO' || game.state === 'STORY' || game.state === 'END') anyKeyAdvance();
+  } else {
+    if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') jumpHeld = false;
   }
 }
-window.addEventListener('keydown', e => { setKey(e.code, true); });
-window.addEventListener('keyup',   e => setKey(e.code, false));
+window.addEventListener('keydown', e => {
+  const blocked = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','KeyW','KeyA','KeyS','KeyD'];
+  if (blocked.includes(e.code)) e.preventDefault();
+  setKey(e.code, true);
+});
+window.addEventListener('keyup', e => setKey(e.code, false));
 
 function anyKeyAdvance() {
   if (game.state === 'STORY') {
