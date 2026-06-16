@@ -1,10 +1,10 @@
 // ============================================================
-// MIND IN MOTION — levels.js (20-Chapter Campaign)
+// MIND IN MOTION — levels.js (Complete 40-Chapter Matrix)
 // Platforms: [x, y, width, height]
 // Hazards: [x, y, width, height]
 // Springs: [x, y, width, height, velocityBoost]
 // Enemies: { x, y, minX, maxX, speed, dir, w, h, type }
-//   types: 'patrol' | 'stalker' | 'sentinel' | 'charger' | 'floater'
+//   types: 'patrol' | 'stalker' | 'sentinel' | 'charger' | 'ninja'
 // ============================================================
 
 const LEVELS = [
@@ -133,7 +133,6 @@ const LEVELS = [
   // ============================================================
   // CHAPTERS VII–XIX — THE BEYOND (Bioluminescent Dimension)
   // ============================================================
-
   {
     name: "THRESHOLD", subtitle: "CHAPTER VII",
     mood: { isBeyond: true },
@@ -474,7 +473,7 @@ const LEVELS = [
   },
 
   // ============================================================
-  // CHAPTER XX — TRANSCENDENCE (Earned Finale)
+  // CHAPTER XX — TRANSCENDENCE (Earned Finale Pattern)
   // ============================================================
   {
     name: "TRANSCENDENCE", subtitle: "CHAPTER XX",
@@ -484,21 +483,401 @@ const LEVELS = [
     checkpoints: [],
     exit: { x: 5180, y: 120, w: 40, h: 120 },
     springs: [
-      [1200, 746, 80, 6, 1350],
-      [2600, 596, 80, 6, 1400],
-      [4000, 446, 80, 6, 1450]
+      [1200, 746, 80, 6, 1350], [2600, 596, 80, 6, 1400], [4000, 446, 80, 6, 1450]
     ],
     enemies: [],
     platforms: [
-      [0, 700, 1300, 300],
-      [1200, 750, 80, 250],
-      [1700, 520, 400, 30],
-      [2400, 400, 300, 30],
-      [2600, 600, 80, 400],
-      [3100, 320, 400, 30],
-      [3700, 260, 300, 30],
-      [4000, 450, 80, 550],
-      [4400, 240, 1200, 700]
+      [0, 700, 1300, 300], [1200, 750, 80, 250], [1700, 520, 400, 30],
+      [2400, 400, 300, 30], [2600, 600, 80, 400], [3100, 320, 400, 30],
+      [3700, 260, 300, 30], [4000, 450, 80, 550], [4400, 240, 1200, 700]
+    ],
+    hazards: []
+  },
+
+  // ============================================================
+  // CHAPTERS XXI–XXX — THE ASSAULT ARC (Gun Combat & Ninja Enemies)
+  // ============================================================
+  {
+    name: "THE ASSAULT", subtitle: "CHAPTER XXI",
+    mood: { isBeyond: true },
+    story: ["He didn't want to fight.", "But the dimension adapted to his pacifism.", "He adapted back. Left click to aim and fire."],
+    width: 8000, bottom: 1200, spawn: { x: 150, y: 600 },
+    checkpoints: [{ x: 3500, y: 500 }],
+    exit: { x: 7600, y: 380, w: 40, h: 120 },
+    enemies: [
+      { x: 1800, y: 550, minX: 1400, maxX: 2200, speed: 180, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 3000, y: 500, minX: 2800, maxX: 3400, speed: 190, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 4200, y: 450, minX: 3800, maxX: 4600, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' },
+      { x: 5500, y: 400, minX: 5000, maxX: 6000, speed: 200, dir: -1, w: 26, h: 50, type: 'ninja' }
+    ],
+    platforms: [
+      [0, 700, 1200, 300], [1400, 600, 600, 30], [2200, 550, 800, 300],
+      [3200, 500, 400, 30], [3800, 480, 1200, 400], [5200, 440, 1000, 30],
+      [6400, 450, 1400, 500]
+    ],
+    hazards: [[1200, 692, 200, 8], [3600, 492, 200, 8]]
+  },
+  {
+    name: "INFILTRATION", subtitle: "CHAPTER XXII",
+    mood: { isBeyond: true },
+    story: ["The architecture tightened.", "Flanking shadows moved parallel to his path.", "Hesitation meant a blade from above."],
+    width: 8200, bottom: 1200, spawn: { x: 150, y: 600 },
+    checkpoints: [{ x: 4000, y: 550 }],
+    exit: { x: 7800, y: 350, w: 40, h: 120 },
+    enemies: [
+      { x: 2200, y: 500, minX: 1800, maxX: 2500, speed: 210, dir: 1, w: 26, h: 50, type: 'ninja' },
+      { x: 4500, y: 500, minX: 4100, maxX: 5000, speed: 220, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 6000, y: 400, minX: 5600, maxX: 6500, speed: 0, dir: -1, w: 26, h: 50, type: 'sentinel' }
+    ],
+    platforms: [
+      [0, 680, 1600, 300], [1900, 580, 800, 400], [3000, 640, 400, 30],
+      [3700, 610, 1500, 400], [5500, 500, 600, 30], [6400, 450, 1500, 400]
+    ],
+    hazards: [[1600, 672, 300, 8]]
+  },
+  {
+    name: "RETRIBUTION", subtitle: "CHAPTER XXIII",
+    mood: { isBeyond: true },
+    story: ["They coordinated their strikes.", "Brute speed combined with precise aerial entry.", "Keep moving or get pinned down."],
+    width: 8400, bottom: 1200, spawn: { x: 150, y: 500 },
+    checkpoints: [{ x: 3800, y: 500 }],
+    exit: { x: 8000, y: 400, w: 40, h: 120 },
+    enemies: [
+      { x: 1500, y: 500, minX: 1200, maxX: 2200, speed: 90, dir: 1, w: 26, h: 50, type: 'charger' },
+      { x: 2800, y: 400, minX: 2400, maxX: 3200, speed: 200, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 5000, y: 450, minX: 4500, maxX: 5500, speed: 210, dir: 1, w: 26, h: 50, type: 'ninja' },
+      { x: 6800, y: 400, minX: 6200, maxX: 7400, speed: 100, dir: -1, w: 26, h: 50, type: 'charger' }
+    ],
+    platforms: [
+      [0, 600, 1200, 300], [1400, 560, 900, 40], [2500, 500, 1000, 300],
+      [3800, 560, 1400, 400], [5500, 500, 800, 40], [6600, 480, 1500, 400]
+    ],
+    hazards: [[1200, 592, 200, 8], [3500, 492, 300, 8]]
+  },
+  {
+    name: "VANGUARD", subtitle: "CHAPTER XXIV",
+    mood: { isBeyond: true },
+    story: ["Ledges became narrow fragments.", "Ninjas dropped directly into his blind spots.", "Shoot upwards to clear a passage."],
+    width: 8500, bottom: 1300, spawn: { x: 150, y: 600 },
+    checkpoints: [{ x: 4200, y: 450 }],
+    exit: { x: 8100, y: 300, w: 40, h: 120 },
+    enemies: [
+      { x: 2000, y: 450, minX: 1700, maxX: 2400, speed: 230, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 3500, y: 400, minX: 3200, maxX: 3900, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' },
+      { x: 5800, y: 350, minX: 5400, maxX: 6200, speed: 240, dir: 1, w: 26, h: 50, type: 'ninja' }
+    ],
+    platforms: [
+      [0, 700, 1000, 300], [1200, 600, 300, 30], [1700, 520, 800, 400],
+      [2800, 500, 300, 30], [3300, 450, 1200, 500], [4800, 400, 400, 30],
+      [5400, 380, 1100, 600], [6800, 350, 1400, 30]
+    ],
+    hazards: [[1000, 692, 200, 8], [2500, 512, 300, 8]]
+  },
+  {
+    name: "AMBUSH", subtitle: "CHAPTER XXV",
+    mood: { isBeyond: true },
+    story: ["A crossfire matrix locked down the path.", "Static defenses anchored by relentless executioners.", "Break their balance before they lock their tracking."],
+    width: 8800, bottom: 1200, spawn: { x: 150, y: 600 },
+    checkpoints: [{ x: 4400, y: 500 }],
+    exit: { x: 8400, y: 350, w: 40, h: 120 },
+    enemies: [
+      { x: 1800, y: 550, minX: 1600, maxX: 2000, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' },
+      { x: 2800, y: 500, minX: 2400, maxX: 3200, speed: 220, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 5000, y: 450, minX: 4700, maxX: 5300, speed: 0, dir: -1, w: 26, h: 50, type: 'sentinel' },
+      { x: 6500, y: 400, minX: 6000, maxX: 7000, speed: 230, dir: 1, w: 26, h: 50, type: 'ninja' }
+    ],
+    platforms: [
+      [0, 660, 1200, 300], [1400, 600, 500, 30], [2100, 540, 1100, 400],
+      [3400, 500, 400, 30], [4000, 480, 1400, 500], [5700, 420, 400, 30],
+      [6300, 400, 1800, 600]
+    ],
+    hazards: [[1200, 652, 200, 8], [3500, 492, 500, 8]]
+  },
+  {
+    name: "ESCALATION", subtitle: "CHAPTER XXVI",
+    mood: { isBeyond: true },
+    story: ["No safe ground remained.", "Every vertical layer layout contained a dynamic threat.", "Trust the gun's structural weight. Clear the path."],
+    width: 9000, bottom: 1200, spawn: { x: 150, y: 500 },
+    checkpoints: [{ x: 4500, y: 450 }],
+    exit: { x: 8600, y: 350, w: 40, h: 120 },
+    enemies: [
+      { x: 1600, y: 450, minX: 1200, maxX: 2000, speed: 240, dir: 1, w: 26, h: 50, type: 'ninja' },
+      { x: 3200, y: 400, minX: 2800, maxX: 3600, speed: 110, dir: -1, w: 26, h: 50, type: 'charger' },
+      { x: 5200, y: 420, minX: 4800, maxX: 5600, speed: 250, dir: 1, w: 26, h: 50, type: 'ninja' },
+      { x: 7000, y: 350, minX: 6600, maxX: 7400, speed: 0, dir: -1, w: 26, h: 50, type: 'sentinel' }
+    ],
+    platforms: [
+      [0, 600, 1000, 300], [1200, 540, 900, 40], [2300, 500, 300, 30],
+      [2800, 460, 1100, 400], [4100, 420, 400, 30], [4700, 440, 1200, 400],
+      [6200, 380, 2100, 500]
+    ],
+    hazards: [[1000, 592, 200, 8], [4100, 412, 400, 8]]
+  },
+  {
+    name: "FORTRESS", subtitle: "CHAPTER XXVII",
+    mood: { isBeyond: true },
+    story: ["A heavy architectural gauntlet blocked the horizon.", "Ninjas locked inside vertical grid layouts.", "Pre-fire before dropping into lower zones."],
+    width: 9200, bottom: 1300, spawn: { x: 150, y: 650 },
+    checkpoints: [{ x: 4600, y: 550 }],
+    exit: { x: 8800, y: 400, w: 40, h: 120 },
+    enemies: [
+      { x: 2200, y: 550, minX: 1900, maxX: 2500, speed: 220, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 3800, y: 500, minX: 3500, maxX: 4200, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' },
+      { x: 5800, y: 520, minX: 5200, maxX: 6200, speed: 230, dir: 1, w: 26, h: 50, type: 'ninja' },
+      { x: 7400, y: 450, minX: 7000, maxX: 7800, speed: 120, dir: -1, w: 26, h: 50, type: 'charger' }
+    ],
+    platforms: [
+      [0, 720, 1400, 300], [1600, 640, 300, 30], [2100, 580, 1200, 400],
+      [3500, 520, 1000, 30], [4700, 540, 1100, 500], [6000, 480, 400, 30],
+      [6600, 460, 2200, 600]
+    ],
+    hazards: [[1400, 712, 200, 8], [3500, 512, 300, 8]]
+  },
+  {
+    name: "THE GRID", subtitle: "CHAPTER XXVIII",
+    mood: { isBeyond: true },
+    story: ["Perfect alignment was demanded.", "Spikes coated the underbelly of every platform edge.", "Leap and shoot simultaneously to neutralize threats."],
+    width: 9400, bottom: 1200, spawn: { x: 150, y: 600 },
+    checkpoints: [{ x: 4800, y: 480 }],
+    exit: { x: 9000, y: 350, w: 40, h: 120 },
+    enemies: [
+      { x: 2000, y: 500, minX: 1600, maxX: 2400, speed: 250, dir: 1, w: 26, h: 50, type: 'ninja' },
+      { x: 4000, y: 440, minX: 3600, maxX: 4400, speed: 240, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 6800, y: 380, minX: 6400, maxX: 7200, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' }
+    ],
+    platforms: [
+      [0, 660, 1200, 300], [1400, 580, 800, 30], [2400, 520, 1400, 400],
+      [4000, 460, 800, 30], [5000, 440, 1500, 500], [6800, 380, 2200, 600]
+    ],
+    hazards: [[1200, 652, 200, 8], [3800, 452, 200, 8]]
+  },
+  {
+    name: "BREAKOUT", subtitle: "CHAPTER XXIX",
+    mood: { isBeyond: true },
+    story: ["The containment architecture shattered.", "An unmitigated hunting party emerged from the gaps.", "Maintain forward speed. Do not cycle backward."],
+    width: 9600, bottom: 1200, spawn: { x: 150, y: 600 },
+    checkpoints: [{ x: 5000, y: 500 }],
+    exit: { x: 9200, y: 380, w: 40, h: 120 },
+    enemies: [
+      { x: 1400, y: 550, minX: 1000, maxX: 1800, speed: 130, dir: 1, w: 26, h: 50, type: 'charger' },
+      { x: 2800, y: 500, minX: 2400, maxX: 3200, speed: 260, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 4500, y: 480, minX: 4000, maxX: 5000, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' },
+      { x: 6200, y: 450, minX: 5600, maxX: 6800, speed: 250, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 7800, y: 400, minX: 7200, maxX: 8400, speed: 140, dir: 1, w: 26, h: 50, type: 'charger' }
+    ],
+    platforms: [
+      [0, 680, 1000, 300], [1200, 600, 1200, 40], [2600, 540, 1200, 400],
+      [4000, 480, 1200, 40], [5400, 460, 1600, 500], [7200, 420, 2000, 600]
+    ],
+    hazards: [[1000, 672, 200, 8], [3800, 472, 200, 8]]
+  },
+  {
+    name: "APEX AREA", subtitle: "CHAPTER XXX",
+    mood: { isBeyond: true },
+    story: ["The final defense perimeter of the ground world.", "A concentrated execution matrix.", "Purge the platform layers to earn transcendence."],
+    width: 7000, bottom: 1100, spawn: { x: 150, y: 600 },
+    checkpoints: [],
+    exit: { x: 6500, y: 350, w: 40, h: 120 },
+    enemies: [
+      { x: 1200, y: 600, minX: 800, maxX: 1600, speed: 260, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 2400, y: 500, minX: 2000, maxX: 2800, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' },
+      { x: 3800, y: 450, minX: 3400, maxX: 4400, speed: 270, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 5000, y: 400, minX: 4600, maxX: 5600, speed: 280, dir: 1, w: 26, h: 50, type: 'ninja' }
+    ],
+    platforms: [
+      [0, 680, 1000, 300], [1200, 580, 1000, 400], [2400, 500, 1000, 40],
+      [3600, 460, 1200, 500], [5000, 400, 1600, 600]
+    ],
+    hazards: []
+  },
+
+  // ============================================================
+  // CHAPTERS XXXI–XL — THE ASCENSION ARC (Vertical Flight Prep)
+  // ============================================================
+  {
+    name: "SKYBOUND", subtitle: "CHAPTER XXXI",
+    mood: { isBeyond: true },
+    story: ["The atmosphere began to thin out.", "Platforms scaled upwards toward the cosmic belt.", "Jump momentum carries further here."],
+    width: 8000, bottom: 1200, spawn: { x: 150, y: 650 },
+    checkpoints: [{ x: 4000, y: 500 }],
+    exit: { x: 7600, y: 250, w: 40, h: 120 },
+    enemies: [
+      { x: 2000, y: 520, minX: 1600, maxX: 2400, speed: 220, dir: 1, w: 26, h: 50, type: 'ninja' },
+      { x: 5000, y: 400, minX: 4500, maxX: 5500, speed: 0, dir: -1, w: 26, h: 50, type: 'sentinel' }
+    ],
+    platforms: [
+      [0, 740, 1200, 300], [1400, 620, 600, 30], [2200, 540, 800, 400],
+      [3200, 480, 400, 30], [3800, 420, 1400, 500], [5400, 350, 400, 30],
+      [6000, 300, 1600, 600]
+    ],
+    hazards: [[1200, 732, 200, 8]]
+  },
+  {
+    name: "STRATOSPHERE", subtitle: "CHAPTER XXXII",
+    mood: { isBeyond: true },
+    story: ["Gravity was losing its hold.", "Ninjas catch massive air on their counter-leaps.", "Track them cleanly before they reach their apex."],
+    width: 8400, bottom: 1200, spawn: { x: 150, y: 600 },
+    checkpoints: [{ x: 4200, y: 450 }],
+    exit: { x: 8000, y: 200, w: 40, h: 120 },
+    enemies: [
+      { x: 2400, y: 480, minX: 2000, maxX: 2800, speed: 250, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 6000, y: 350, minX: 5500, maxX: 6500, speed: 260, dir: 1, w: 26, h: 50, type: 'ninja' }
+    ],
+    platforms: [
+      [0, 680, 1400, 300], [1600, 560, 400, 30], [2200, 480, 1200, 400],
+      [3600, 420, 400, 30], [4200, 360, 1500, 500], [5900, 300, 400, 30],
+      [6500, 240, 1600, 600]
+    ],
+    hazards: [[1600, 552, 400, 8]]
+  },
+  {
+    name: "VERTICAL LIMIT", subtitle: "CHAPTER XXXIII",
+    mood: { isBeyond: true },
+    story: ["High-impulse mechanical launch systems detected.", "Coil lines hum with violent energy.", "Bounce and clear airborne targets instantly."],
+    width: 8600, bottom: 1300, spawn: { x: 150, y: 700 },
+    checkpoints: [{ x: 4400, y: 500 }],
+    exit: { x: 8200, y: 250, w: 40, h: 120 },
+    springs: [[1400, 846, 70, 6, 1350], [5000, 646, 70, 6, 1400]],
+    enemies: [
+      { x: 2800, y: 500, minX: 2400, maxX: 3200, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' },
+      { x: 6400, y: 400, minX: 6000, maxX: 6800, speed: 240, dir: -1, w: 26, h: 50, type: 'ninja' }
+    ],
+    platforms: [
+      [0, 780, 1000, 320], [1400, 850, 70, 300], [1800, 620, 800, 30],
+      [2800, 540, 1400, 400], [4400, 460, 400, 30], [5000, 650, 70, 400],
+      [5400, 420, 2400, 500]
+    ],
+    hazards: [[1800, 612, 800, 8]]
+  },
+  {
+    name: "CLOUD RAIN", subtitle: "CHAPTER XXXIV",
+    mood: { isBeyond: true },
+    story: ["Liquid static dropped from the black layer.", "Ledges were coated and extremely narrow.", "Keep horizontal momentum absolute."],
+    width: 8800, bottom: 1200, spawn: { x: 150, y: 600 },
+    checkpoints: [{ x: 4500, y: 400 }],
+    exit: { x: 8400, y: 200, w: 40, h: 120 },
+    enemies: [
+      { x: 2000, y: 440, minX: 1600, maxX: 2400, speed: 260, dir: 1, w: 26, h: 50, type: 'ninja' },
+      { x: 6800, y: 320, minX: 6200, maxX: 7200, speed: 270, dir: -1, w: 26, h: 50, type: 'ninja' }
+    ],
+    platforms: [
+      [0, 660, 1200, 300], [1400, 540, 600, 30], [2200, 460, 1400, 400],
+      [3800, 380, 500, 30], [4500, 340, 1600, 500], [6300, 280, 2200, 600]
+    ],
+    hazards: [[1400, 532, 600, 8], [3800, 372, 500, 8]]
+  },
+  {
+    name: "THE REACH", subtitle: "CHAPTER XXXV",
+    mood: { isBeyond: true },
+    story: ["Massive gaps isolated the architecture blocks.", "Use the gun's firing recoil pressure to extend jumps.", "Precision vectors only."],
+    width: 9000, bottom: 1200, spawn: { x: 150, y: 600 },
+    checkpoints: [{ x: 4600, y: 450 }],
+    exit: { x: 8600, y: 250, w: 40, h: 120 },
+    enemies: [
+      { x: 3000, y: 450, minX: 2600, maxX: 3400, speed: 0, dir: -1, w: 26, h: 50, type: 'sentinel' },
+      { x: 7200, y: 350, minX: 6600, maxX: 7600, speed: 250, dir: 1, w: 26, h: 50, type: 'ninja' }
+    ],
+    platforms: [
+      [0, 680, 1600, 300], [2200, 540, 1400, 400], [4000, 440, 400, 30],
+      [4600, 420, 1800, 500], [6800, 340, 1900, 600]
+    ],
+    hazards: [[1600, 672, 600, 8], [3600, 532, 400, 8]]
+  },
+  {
+    name: "GRAVITY WELL", subtitle: "CHAPTER XXXVI",
+    mood: { isBeyond: true },
+    story: ["The center of gravity shattered.", "Dynamic objects drop continuously from the sky grid.", "Look up. Keep the weapon cycling."],
+    width: 9200, bottom: 1300, spawn: { x: 150, y: 650 },
+    checkpoints: [{ x: 4600, y: 500 }],
+    exit: { x: 8800, y: 300, w: 40, h: 120 },
+    enemies: [
+      { x: 2000, y: 520, minX: 1500, maxX: 2400, speed: 280, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 5500, y: 420, minX: 5000, maxX: 6000, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' },
+      { x: 7400, y: 380, minX: 7000, maxX: 7800, speed: 290, dir: 1, w: 26, h: 50, type: 'ninja' }
+    ],
+    platforms: [
+      [0, 720, 1200, 300], [1400, 600, 800, 30], [2400, 540, 1400, 400],
+      [4000, 460, 1000, 30], [5200, 440, 1600, 500], [7000, 360, 1900, 600]
+    ],
+    hazards: [[1400, 592, 800, 8]]
+  },
+  {
+    name: "STORM FRONT", subtitle: "CHAPTER XXXVII",
+    mood: { isBeyond: true },
+    story: ["A wall of sentinels blocked the upward path.", "Synchronized bullet fire grids.", "Time your jumps inside the reload gaps."],
+    width: 9400, bottom: 1200, spawn: { x: 150, y: 600 },
+    checkpoints: [{ x: 4800, y: 450 }],
+    exit: { x: 9000, y: 250, w: 40, h: 120 },
+    enemies: [
+      { x: 1800, y: 500, minX: 1600, maxX: 2000, speed: 0, dir: 1, w: 26, h: 50, type: 'sentinel' },
+      { x: 3200, y: 440, minX: 3000, maxX: 3400, speed: 0, dir: -1, w: 26, h: 50, type: 'sentinel' },
+      { x: 5800, y: 380, minX: 5400, maxX: 6200, speed: 280, dir: 1, w: 26, h: 50, type: 'ninja' },
+      { x: 7200, y: 340, minX: 6800, maxX: 7600, speed: 0, dir: -1, w: 26, h: 50, type: 'sentinel' }
+    ],
+    platforms: [
+      [0, 660, 1400, 300], [1600, 540, 1200, 400], [3000, 460, 400, 30],
+      [3600, 420, 1600, 500], [5400, 360, 1200, 30], [6800, 320, 2200, 600]
+    ],
+    hazards: [[3000, 452, 400, 8]]
+  },
+  {
+    name: "THE EDGE", subtitle: "CHAPTER XXXVIII",
+    mood: { isBeyond: true },
+    story: ["The final solid platform layer was approaching.", "Ninjas attack from structural blind spots.", "Keep your fire continuous while moving forward."],
+    width: 9600, bottom: 1200, spawn: { x: 150, y: 600 },
+    checkpoints: [{ x: 5000, y: 450 }],
+    exit: { x: 9200, y: 250, w: 40, h: 120 },
+    enemies: [
+      { x: 2200, y: 480, minX: 1800, maxX: 2600, speed: 290, dir: -1, w: 26, h: 50, type: 'ninja' },
+      { x: 4500, y: 400, minX: 4100, maxX: 4900, speed: 130, dir: 1, w: 26, h: 50, type: 'charger' },
+      { x: 7000, y: 320, minX: 6500, maxX: 7500, speed: 300, dir: 1, w: 26, h: 50, type: 'ninja' }
+    ],
+    platforms: [
+      [0, 680, 1600, 300], [1800, 540, 800, 30], [2800, 460, 1600, 400],
+      [4600, 380, 800, 30], [5600, 340, 1200, 500], [7000, 300, 2300, 600]
+    ],
+    hazards: [[1800, 532, 800, 8]]
+  },
+  {
+    name: "TAKEOFF STRIP", subtitle: "CHAPTER XXXIX",
+    mood: { isBeyond: true },
+    story: ["A long, uninterrupted horizontal runway.", "The static hummed at maximum capacity.", "Accelerate to structural escape velocity."],
+    width: 7500, bottom: 1100, spawn: { x: 150, y: 600 },
+    checkpoints: [],
+    exit: { x: 7100, y: 400, w: 40, h: 120 },
+    enemies: [
+      { x: 2000, y: 600, minX: 1500, maxX: 3000, speed: 150, dir: 1, w: 26, h: 50, type: 'charger' },
+      { x: 4000, y: 600, minX: 3500, maxX: 5000, speed: 160, dir: 1, w: 26, h: 50, type: 'charger' },
+      { x: 6000, y: 600, minX: 5500, maxX: 6800, speed: 300, dir: -1, w: 26, h: 50, type: 'ninja' }
+    ],
+    platforms: [
+      [0, 680, 7500, 420]
+    ],
+    hazards: []
+  },
+
+  // ============================================================
+  // EXPANSION: CHAPTER XL (AIRSPACE - First Flight Level)
+  // ============================================================
+  {
+    name: "AIRSPACE", subtitle: "CHAPTER XL",
+    mood: { isBeyond: true },
+    isPlane: true, // TRIGGERS ZERO-DRIFT FLIGHT PHYSICS
+    story: ["The ground stopped entirely.", "The suit evolved to cut through the static space.", "W,A,S,D to navigate. Mouse to clear the airspace."],
+    width: 12000, bottom: 1800, spawn: { x: 300, y: 800 },
+    exit: { x: 11500, y: 800, w: 100, h: 200 },
+    enemies: [
+      { x: 2000, y: 600, minX: 1800, maxX: 2200, speed: 0, dir: -1, w: 40, h: 40, type: 'sentinel' },
+      { x: 3500, y: 400, minX: 3000, maxX: 4000, speed: 250, dir: -1, w: 30, h: 30, type: 'stalker' },
+      { x: 3500, y: 900, minX: 3000, maxX: 4000, speed: 250, dir: -1, w: 30, h: 30, type: 'stalker' },
+      { x: 6000, y: 700, minX: 5800, maxX: 6200, speed: 0, dir: -1, w: 40, h: 40, type: 'sentinel' },
+      { x: 8000, y: 300, minX: 7000, maxX: 9000, speed: 300, dir: -1, w: 30, h: 30, type: 'stalker' },
+      { x: 8000, y: 1100, minX: 7000, maxX: 9000, speed: 300, dir: -1, w: 30, h: 30, type: 'stalker' }
+    ],
+    platforms: [
+      [2500, 0, 300, 600], [2500, 1000, 300, 800],
+      [5000, 400, 400, 800], 
+      [7500, 0, 300, 400], [7500, 700, 300, 400], [7500, 1400, 300, 400]
     ],
     hazards: []
   }
