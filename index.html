@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Mind in Motion — An Atmospheric Odyssey</title>
 
-<!-- Shareability Package: Open Graph & Meta Tags -->
 <meta name="description" content="An atmospheric cinematic platformer engineered by Bruder Motion. Run, leap, and transcend the static.">
 <meta property="og:title" content="Mind in Motion">
 <meta property="og:description" content="Experience the platformer portfolio showcase by Bruder Motion. Built from raw code to high design.">
@@ -14,7 +13,7 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mind in Motion">
-<meta name="twitter:description" content="A portfolio piece in motion. Explore seven chapters of psychological architectural landscapes.">
+<meta name="twitter:description" content="A portfolio piece in motion. Explore psychological architectural landscapes.">
 <meta name="twitter:image" content="https://itsultium.github.io/mind-in-motion/og_preview.jpg">
 
 <link rel="icon" type="image/png" href="favicon.png">
@@ -23,9 +22,8 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; overflow: hidden; background: #05090f; touch-action: none; }
-  canvas { display: block; width: 100vw; height: 100vh; }
+  canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
   
-  /* Cinematic Intro Video Overlay Container */
   #intro-container {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     z-index: 1001; background: #05090f; transition: opacity 1.2s ease-in-out;
@@ -40,7 +38,6 @@
     animation: pulseText 2s infinite ease-in-out; pointer-events: none;
   }
 
-  /* Portal 2-Inspired Immersive Menu System Overlay */
   #gatekeeper {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: transparent; z-index: 1000; transition: opacity 0.5s ease-in-out;
@@ -48,31 +45,27 @@
   }
   #gatekeeper.hidden { opacity: 0; pointer-events: none; }
 
-  /* Invisible background pipeline wrapper to stop 8GB browser tab choking */
-  #menu-video-bg { display: none; }
+  /* Optimized video background pipeline */
+  #menu-video-bg {
+    position: absolute; top: 0; left: 0; width: 1px; height: 1px;
+    opacity: 0; pointer-events: none;
+  }
 
   .menu-content-wrapper {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     z-index: 2; display: flex; flex-direction: column;
-    justify-content: center; align-items: flex-end; /* Right-Aligned layout */
+    justify-content: center; align-items: flex-end;
     padding-right: 8%; padding-left: 5%;
   }
 
-  .menu-branding {
-    align-self: flex-start; position: absolute; top: 8%; left: 6%;
-  }
+  .menu-branding { align-self: flex-start; position: absolute; top: 8%; left: 6%; }
   .menu-branding h1 {
     color: #dfe8f5; font: bold 38px Georgia, serif; letter-spacing: 6px;
     margin-bottom: 6px; opacity: 0.95; text-shadow: 0 0 24px rgba(157,184,224,0.2);
   }
-  .menu-branding p {
-    color: #9db8e0; font: italic 12px Georgia, serif; letter-spacing: 2px; opacity: 0.6;
-  }
+  .menu-branding p { color: #9db8e0; font: italic 12px Georgia, serif; letter-spacing: 2px; opacity: 0.6; }
 
-  .menu-layout { 
-    display: flex; flex-direction: column; align-items: flex-end; gap: 14px; 
-    margin-top: 40px;
-  }
+  .menu-layout { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; margin-top: 40px; }
   
   .menu-btn {
     background: transparent; border: none; color: #9db8e0;
@@ -80,27 +73,20 @@
     cursor: pointer; transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1); 
     text-align: right; position: relative; opacity: 0.75;
   }
-  .menu-btn:hover {
-    color: #dfe8f5; opacity: 1; padding-right: 15px;
-    text-shadow: 0 0 15px rgba(157,184,224,0.4);
-  }
+  .menu-btn:hover { color: #dfe8f5; opacity: 1; padding-right: 15px; text-shadow: 0 0 15px rgba(157,184,224,0.4); }
   
   #level-select-panel {
     margin-top: 35px; display: flex; flex-direction: column; align-items: flex-end; opacity: 0;
     transition: opacity 0.5s ease; width: 100%; max-width: 450px;
   }
-  #level-select-panel p {
-    color: #9db8e0; font: bold 10px Georgia, serif; letter-spacing: 3px; margin-bottom: 14px; opacity: 0.5;
-  }
+  #level-select-panel p { color: #9db8e0; font: bold 10px Georgia, serif; letter-spacing: 3px; margin-bottom: 14px; opacity: 0.5; }
   .nodes-row { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; max-width: 450px; }
   
   .node-btn {
     background: rgba(5, 9, 15, 0.4); border: 1px solid rgba(157,184,224,0.15); color: #9db8e0;
     font: 12px Georgia, serif; padding: 8px 14px; cursor: pointer; transition: all 0.2s;
   }
-  .node-btn:hover {
-    background: rgba(157,184,224,0.2); color: #dfe8f5; border-color: rgba(157,184,224,0.6);
-  }
+  .node-btn:hover { background: rgba(157,184,224,0.2); color: #dfe8f5; border-color: rgba(157,184,224,0.6); }
 
   #hud {
     position: fixed; top: 10px; left: 12px; color: #9db8e0; opacity: 0.6;
@@ -114,35 +100,26 @@
     justify-content: center; user-select: none; -webkit-user-select: none; z-index: 5;
   }
   .btn:active { background: rgba(157,184,224,0.28); }
-  #btnL { left: 20px; }
-  #btnR { left: 100px; }
-  #btnJ { right: 24px; width: 76px; height: 76px; }
+  #btnL { left: 20px; } #btnR { left: 100px; } #btnJ { right: 24px; width: 76px; height: 76px; }
   
-  @keyframes pulseText {
-    0%, 100% { opacity: 0.2; }
-    50% { opacity: 0.6; }
-  }
+  @keyframes pulseText { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.6; } }
   @media (pointer: coarse) { .btn { display: flex; } }
 </style>
 </head>
 <body>
 
 <div id="gatekeeper">
-  <!-- Updated background cinematic loop pipeline asset link destination -->
   <video id="menu-video-bg" src="https://res.cloudinary.com/dcjst7sod/video/upload/v1781467693/Main_Menu_Background_e2qmnl.mp4" loop muted playsinline autoplay></video>
-  
   <div class="menu-content-wrapper">
     <div class="menu-branding">
       <h1 id="menu-title-text">MIND IN MOTION</h1>
       <p id="menu-subtitle-text">An Atmospheric Odyssey</p>
     </div>
-
     <div class="menu-layout">
       <button class="menu-btn" id="menu-new-btn">NEW JOURNEY</button>
       <button class="menu-btn" id="menu-cont-btn" style="display: none;">CONTINUE</button>
       <button class="menu-btn" id="menu-quit-btn" style="display: none;">QUIT TO TITLE</button>
     </div>
-    
     <div id="level-select-panel">
       <p>SELECT UNLOCKED CHAPTER</p>
       <div class="nodes-row" id="nodes-container"></div>
@@ -156,7 +133,7 @@
 </div>
 
 <canvas id="c"></canvas>
-<div id="hud">A-D / ARROWS &nbsp;·&nbsp; SPACE TO JUMP &nbsp;·&nbsp; ESC / P TO PAUSE &nbsp;·&nbsp; R RESTART</div>
+<div id="hud">A-D / ARROWS &nbsp;·&nbsp; SPACE TO JUMP &nbsp;·&nbsp; MOUSE TO AIM/FIRE &nbsp;·&nbsp; ESC TO PAUSE</div>
 <div class="btn" id="btnL">&#9664;</div>
 <div class="btn" id="btnR">&#9654;</div>
 <div class="btn" id="btnJ">&#9650;</div>
