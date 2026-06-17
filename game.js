@@ -87,7 +87,7 @@ let asteroidTimer = 0;
 // ---------- audio ----------
 const audioChannels = {
   ctx: null,
-  nature: new Audio('nature.mp3'),
+  nature: null,
   music: new Audio('https://res.cloudinary.com/dcjst7sod/video/upload/v1781299773/Background_music_of_gameplay_uutorc.mp3'),
   menuMusic: new Audio('https://res.cloudinary.com/dcjst7sod/video/upload/v1781467127/Main_Menu_Audio_ovq3r9.mp3'),
   initialized: false, muted: false
@@ -95,9 +95,10 @@ const audioChannels = {
 
 function startAudio() {
   if (audioChannels.initialized) return;
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  audioChannels.ctx = new AudioCtx();
-  audioChannels.nature.loop = true; audioChannels.nature.volume = 0.55; audioChannels.nature.play().catch(() => {});
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    audioChannels.ctx = new AudioCtx();
+  } catch(e) {}
   audioChannels.music.loop = true; audioChannels.music.volume = 0.0; audioChannels.music.play().catch(() => {});
   audioChannels.menuMusic.loop = true; audioChannels.menuMusic.volume = 0.0; audioChannels.menuMusic.play().catch(() => {});
   audioChannels.initialized = true;
@@ -198,7 +199,7 @@ function anyKeyAdvance() {
   if (game.state === 'STORY') {
     if (game.storyLine < game.level.story.length) game.storyLine = game.level.story.length;
     else { game.state = 'PLAY'; keys.left = false; keys.right = false; jumpHeld = false; }
-  } else if (game.state === 'END') { game.deaths = 0; loadLevel(0); }
+  } else if (game.state === 'END') { loadLevel(0); }
 }
 
 // ---------- level loading ----------
@@ -226,10 +227,6 @@ function loadLevel(i) {
   game.state = 'STORY'; game.storyLine = 0; game.storyTimer = 0;
   game.fade = 0; game.bloom = 0.0;
   sentinelBullets.length = 0; playerBullets.length = 0;
-  // save progress
-  const prev = parseInt(localStorage.getItem('mim_unlocked') || '0');
-  if (i > prev) localStorage.setItem('mim_unlocked', i);
-  localStorage.setItem('mim_chapter', i);
   initAmbientParticles(); initEnemies(); respawn();
 }
 
@@ -250,23 +247,42 @@ function triggerDeath() {
 
 function overlap(ax, ay, aw, ah, bx, by, bw, bh) { return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by; }
 
+function toggleMute() {
+  audioChannels.muted = !audioChannels.muted;
+  audioChannels.music.volume     = audioChannels.muted ? 0 : audioChannels.music.volume;
+  audioChannels.menuMusic.volume = audioChannels.muted ? 0 : audioChannels.menuMusic.volume;
+}
+
+function playIntro() {
+  const intro = document.getElementById('intro-container');
+  const vid   = document.getElementById('intro-video');
+  if (!vid || !vid.src) { document.getElementById('gatekeeper').classList.add('hidden'); loadLevel(0); return; }
+  intro.classList.add('active');
+  vid.play().catch(() => {});
+  const skip = () => {
+    vid.pause(); intro.classList.remove('active');
+    document.getElementById('gatekeeper').classList.add('hidden');
+    loadLevel(0); intro.removeEventListener('click', skip);
+  };
+  intro.addEventListener('click', skip); vid.onended = skip;
+}
+
 // ============================================================
 // UPDATE
 // ============================================================
 function update(dt) {
   updateAudioMixing(dt);
-
+  if (game.state !== 'PLAY' && game.state !== 'FADE') {
+    if (game.state === 'STORY') game.storyTimer += dt, game.storyLine = Math.min(Math.floor(game.storyTimer / 1.4), game.level.story.length);
+    return;
+  }
+  
   if (game.state === 'FADE') {
     game.fade = Math.min(1, game.fade + dt * 1.4);
     if (game.fade >= 1) {
       if (game.levelIndex + 1 >= LEVELS.length) { game.state = 'END'; }
       else { loadLevel(game.levelIndex + 1); }
     }
-    return;
-  }
-
-  if (game.state !== 'PLAY') {
-    if (game.state === 'STORY') game.storyTimer += dt, game.storyLine = Math.min(Math.floor(game.storyTimer / 1.4), game.level.story.length);
     return;
   }
 
@@ -375,8 +391,8 @@ function update(dt) {
     player.vx = Math.max(-PHYS.maxSpeed, Math.min(PHYS.maxSpeed, player.vx));
     player.vy = Math.min(player.vy + PHYS.gravity * dt, PHYS.maxFall);
 
-    player.coyote = Math.max(0, (player.coyote || 0) - dt);
     player.buffer = Math.max(0, player.buffer - dt);
+    player.coyote = Math.max(0, (player.coyote || 0) - dt);
     if (player.buffer > 0 && (player.grounded || player.coyote > 0)) {
       player.vy = PHYS.jumpVel; player.grounded = false;
       player.coyote = 0; player.buffer = 0; synthSFX('jump');
@@ -417,8 +433,7 @@ function update(dt) {
   cam.zoom += (cam.targetZoom - cam.zoom) * dt * 2.5;
   cam.x += ((player.x + player.w / 2) - cam.x) * dt * 4;
   cam.y += ((player.y + player.h / 2) - cam.y) * dt * 3;
-  const halfW = (W / 2) / cam.zoom;
-  const halfH = (H / 2) / cam.zoom;
+  const halfW = (W/2)/cam.zoom; const halfH = (H/2)/cam.zoom;
   cam.x = Math.max(halfW, Math.min(L.width - halfW, cam.x));
   cam.y = Math.max(halfH, Math.min(L.bottom - halfH, cam.y));
   
@@ -438,43 +453,32 @@ function layer(img, ok, p, hFrac, gap = 1) {
 
 function render() {
   if (game.state === 'MENU' || game.state === 'INTRO') { ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H); return; }
+
   if (game.state === 'STORY') {
     ctx.fillStyle = '#05090f'; ctx.fillRect(0, 0, W, H);
-    const L = game.level;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(157,184,224,0.7)';
-    ctx.font = '13px Georgia, serif';
-    ctx.fillText(L.subtitle, W/2, H*0.32);
-    ctx.fillStyle = '#dfe8f5';
-    ctx.font = '34px Georgia, serif';
-    ctx.fillText(L.name, W/2, H*0.32 + 44);
-    ctx.font = '16px Georgia, serif';
-    ctx.fillStyle = 'rgba(223,232,245,0.85)';
-    for (let i = 0; i < game.storyLine; i++) ctx.fillText(L.story[i], W/2, H*0.5 + i*30);
-    if (game.storyLine >= L.story.length) {
-      ctx.fillStyle = `rgba(157,184,224,${0.4 + 0.3*Math.sin(performance.now()/500)})`;
-      ctx.font = '12px Georgia, serif';
+    const L2 = game.level; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(157,184,224,0.7)'; ctx.font = '13px Georgia, serif';
+    ctx.fillText(L2.subtitle, W/2, H*0.32);
+    ctx.fillStyle = '#dfe8f5'; ctx.font = '34px Georgia, serif';
+    ctx.fillText(L2.name, W/2, H*0.32+44);
+    ctx.font = '16px Georgia, serif'; ctx.fillStyle = 'rgba(223,232,245,0.85)';
+    for (let i = 0; i < game.storyLine; i++) ctx.fillText(L2.story[i], W/2, H*0.5+i*30);
+    if (game.storyLine >= L2.story.length) {
+      ctx.fillStyle = `rgba(157,184,224,${0.4+0.3*Math.sin(performance.now()/500)})`; ctx.font = '12px Georgia, serif';
       ctx.fillText('press any key', W/2, H*0.78);
     }
-    ctx.textAlign = 'left';
-    return;
+    ctx.textAlign = 'left'; return;
   }
 
   if (game.state === 'END') {
     ctx.fillStyle = 'rgba(5,9,15,0.94)'; ctx.fillRect(0, 0, W, H);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#dfe8f5'; ctx.font = '30px Georgia, serif';
+    ctx.textAlign = 'center'; ctx.fillStyle = '#dfe8f5'; ctx.font = '30px Georgia, serif';
     ctx.fillText('THE SKY HAS OPENED UP', W/2, H*0.4);
     ctx.fillStyle = 'rgba(223,232,245,0.75)'; ctx.font = '15px Georgia, serif';
-    const line = game.deaths === 0
-      ? 'He fell zero times. He suspects this means nothing.'
-      : `He fell ${game.deaths} time${game.deaths===1?'':'s'}. He kept the suit clean anyway.`;
-    ctx.fillText(line, W/2, H*0.4+40);
-    ctx.fillStyle = `rgba(157,184,224,${0.4+0.3*Math.sin(performance.now()/500)})`;
-    ctx.font = '12px Georgia, serif';
+    ctx.fillText(game.deaths === 0 ? 'He fell zero times. He suspects this means nothing.' : `He fell ${game.deaths} time${game.deaths===1?'':'s'}. He kept the suit clean anyway.`, W/2, H*0.4+40);
+    ctx.fillStyle = `rgba(157,184,224,${0.4+0.3*Math.sin(performance.now()/500)})`; ctx.font = '12px Georgia, serif';
     ctx.fillText('press any key to run again', W/2, H*0.72);
-    ctx.textAlign = 'left';
-    return;
+    ctx.textAlign = 'left'; return;
   }
 
   const isBeyond = game.level.mood && game.level.mood.isBeyond;
@@ -487,7 +491,7 @@ function render() {
     layer(bgB.mono, bgB.monoOk, 0.35, 1.0, 1.0);
   } else {
     layer(bg.hills, bg.hillsOk, 0.15, 0.60, 1.0);
-    layer(bg.mono,  bg.monoOk,  0.35, 0.70, 1.0);
+    layer(bg.mono, bg.monoOk, 0.35, 0.70, 1.0);
   }
 
   ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
@@ -531,9 +535,14 @@ function render() {
     
     if (spriteReady) {
       const drawH = 100; const drawW = drawH * SHEET.cw / SHEET.ch;
+      // Bright glow pass first
+      ctx.shadowColor = 'rgba(157, 224, 255, 0.95)';
+      ctx.shadowBlur = 24;
       ctx.drawImage(sprite, player.frame * SHEET.cw, 0, SHEET.cw, SHEET.ch, -drawW / 2, -drawH + 8, drawW, drawH);
+      ctx.shadowBlur = 0;
     } else {
-      ctx.fillStyle = '#05090f'; ctx.fillRect(-player.w / 2, -player.h, player.w, player.h);
+      // Bright fallback so always visible
+      ctx.fillStyle = '#c8ddf5'; ctx.fillRect(-player.w / 2, -player.h, player.w, player.h);
     }
     ctx.restore();
   }
@@ -565,79 +574,34 @@ function loop(now) {
 }
 setupSaveMenu(); requestAnimationFrame(loop);
 
-function toggleMute() {
-  audioChannels.muted = !audioChannels.muted;
-  if (audioChannels.muted) {
-    audioChannels.nature.volume = 0;
-    audioChannels.music.volume = 0;
-    audioChannels.menuMusic.volume = 0;
-  }
-}
-
-function playIntro() {
-  const intro = document.getElementById('intro-container');
-  const vid   = document.getElementById('intro-video');
-  if (!vid.src) { document.getElementById('gatekeeper').classList.add('hidden'); loadLevel(0); return; }
-  intro.classList.add('active');
-  vid.play().catch(() => {});
-  const skip = () => { vid.pause(); intro.classList.remove('active'); document.getElementById('gatekeeper').classList.add('hidden'); loadLevel(0); intro.removeEventListener('click', skip); };
-  intro.addEventListener('click', skip);
-  vid.onended = skip;
-}
-
 function setupSaveMenu() {
   const unlocked = parseInt(localStorage.getItem('mim_unlocked') || '0');
   const saved    = parseInt(localStorage.getItem('mim_chapter')  || '0');
+  const newBtn   = document.getElementById('menu-new-btn');
+  const contBtn  = document.getElementById('menu-cont-btn');
+  const quitBtn  = document.getElementById('menu-quit-btn');
+  const panel    = document.getElementById('level-select-panel');
+  const nodes    = document.getElementById('nodes-container');
 
-  const newBtn  = document.getElementById('menu-new-btn');
-  const contBtn = document.getElementById('menu-cont-btn');
-  const quitBtn = document.getElementById('menu-quit-btn');
-  const panel   = document.getElementById('level-select-panel');
-  const nodes   = document.getElementById('nodes-container');
+  if (unlocked > 0 && contBtn) contBtn.style.display = 'block';
+  if (quitBtn) quitBtn.style.display = (game.state === 'PLAY' || game.state === 'PAUSE') ? 'block' : 'none';
 
-  // Show CONTINUE if save exists
-  if (unlocked > 0) { contBtn.style.display = 'block'; }
+  if (newBtn) newBtn.onclick = () => { startAudio(); localStorage.removeItem('mim_unlocked'); localStorage.removeItem('mim_chapter'); playIntro(); };
+  if (contBtn) contBtn.onclick = () => { startAudio(); document.getElementById('gatekeeper').classList.add('hidden'); loadLevel(saved); };
+  if (quitBtn) quitBtn.onclick = () => { game.state = 'MENU'; document.getElementById('gatekeeper').classList.remove('hidden'); setupSaveMenu(); };
 
-  // Show QUIT only when in-game
-  if (game.state === 'PLAY' || game.state === 'PAUSE') { quitBtn.style.display = 'block'; }
-  else { quitBtn.style.display = 'none'; }
-
-  newBtn.onclick = () => {
-    startAudio();
-    localStorage.removeItem('mim_unlocked');
-    localStorage.removeItem('mim_chapter');
-    playIntro();
-  };
-
-  contBtn.onclick = () => {
-    startAudio();
-    document.getElementById('gatekeeper').classList.add('hidden');
-    loadLevel(saved);
-  };
-
-  quitBtn.onclick = () => {
-    game.state = 'MENU';
-    document.getElementById('gatekeeper').classList.remove('hidden');
-    setupSaveMenu();
-  };
-
-  // Build level select nodes
-  nodes.innerHTML = '';
-  for (let i = 0; i <= unlocked && i < LEVELS.length; i++) {
-    const btn = document.createElement('button');
-    btn.className = 'node-btn';
-    btn.textContent = `${LEVELS[i].subtitle}`;
-    btn.onclick = () => {
-      startAudio();
-      document.getElementById('gatekeeper').classList.add('hidden');
-      loadLevel(i);
-    };
-    nodes.appendChild(btn);
+  if (nodes) {
+    nodes.innerHTML = '';
+    for (let i = 0; i <= unlocked && i < LEVELS.length; i++) {
+      const btn = document.createElement('button'); btn.className = 'node-btn';
+      btn.textContent = LEVELS[i].subtitle;
+      btn.onclick = () => { startAudio(); document.getElementById('gatekeeper').classList.add('hidden'); loadLevel(i); };
+      nodes.appendChild(btn);
+    }
   }
-
-  // Show panel if any chapters unlocked
-  if (unlocked > 0) {
-    panel.style.opacity = '1';
-    panel.style.pointerEvents = 'auto';
-  }
+  if (unlocked > 0 && panel) { panel.style.opacity = '1'; panel.style.pointerEvents = 'auto'; }
 }
+
+// ============================================================
+// END OF FILE
+// ============================================================
